@@ -1,0 +1,6 @@
+# Python packages required to run app
+pandas
+numpy
+streamlit
+snowflake-connector-python
+boto3
