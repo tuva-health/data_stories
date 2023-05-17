@@ -1,17 +1,25 @@
 import streamlit as st
 import pandas as pd
+import snowflake.connector as sn
+from dotenv import load_dotenv
+import os
 
-st.markdown("# Main page 🎈")
-st.sidebar.markdown("# Main page 🎈")
+load_dotenv()
 
-data_sheet = 'Dates'
-data_url = f"https://docs.google.com/spreadsheets/d/1gUMKZT1qd15PquTHmtK2I5AMqpVCx2W6OlcXWq2eMq8/gviz/tq?tqx=out:csv&sheet={data_sheet}"
-data = pd.read_csv(data_url, nrows=52,
-                   dtype={'laim Dates Table 1: Distribution of Dates YEAR_MONTH': 'str'})
-data = data.rename({'Claim Dates Table 1: Distribution of Dates YEAR_MONTH': 'YEAR_MONTH'}, axis=1)
-use_cols = [x for x in data.columns if 'Unnamed' not in x]
-data = data.loc[:, use_cols]
-data['YEAR_MONTH'] = pd.to_datetime(data['YEAR_MONTH'], format='%Y%m').dt.date
+st.markdown("# High Level Summary")
+st.sidebar.markdown("# High Level Summary")
+
+con = sn.connect(
+    user=os.getenv('SNOWFLAKE_USER'),
+    password=os.getenv('SNOWFLAKE_PASSWORD'),
+    account=os.getenv('SNOWFLAKE_ACCOUNT'),
+    warehouse=os.getenv('SNOWFLAKE_WH'),
+    role=os.getenv('SNOWFLAKE_ROLE')
+)
+cs = con.cursor()
+cs.execute("""SELECT * FROM TUVA_PROJECT_DEMO.PMPM.PMPM_TRENDS;""")
+
+data = cs.fetch_pandas_all()
 
 st.markdown("### Sample table component from real data")
 st.write(data)
