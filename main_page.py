@@ -33,9 +33,18 @@ start_date, end_date = st.select_slider("Select date range for claims summary",
                                         value=(data['YEAR_MONTH'].min(), data['YEAR_MONTH'].max()))
 filtered_data = data.loc[(data['YEAR_MONTH'] >= start_date) & (data['YEAR_MONTH'] <= end_date), :]
 
-st.divider()
+### Summary Metrics
+total_spend = filtered_data['MEDICAL_SPEND'].sum()
+total_member_months = filtered_data['MEMBER_MONTH_COUNT'].sum()
+avg_pmpm = total_spend/total_member_months
 
-y_axis = st.selectbox('Select Y Parameter for Chart', [x for x in data.columns if x != 'YEAR_MONTH'])
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Spend", '${:,.2f}'.format(total_spend))
+col2.metric("Total Member Months", total_member_months)
+col3.metric("Average PMPM", '${:,.2f}'.format(avg_pmpm))
+
+st.divider()
+y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns if x != 'YEAR_MONTH'])
 
 if y_axis:
-    st.line_chart(filtered_data, x='YEAR_MONTH', y=y_axis)
+    st.line_chart(filtered_data,  x='YEAR_MONTH', y=y_axis)
