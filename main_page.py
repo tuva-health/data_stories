@@ -19,7 +19,7 @@ con = sn.connect(
 cs = con.cursor()
 cs.execute("""SELECT PT.*, PB.MEMBER_COUNT FROM TUVA_PROJECT_DEMO.PMPM.PMPM_TRENDS PT
               LEFT JOIN (SELECT CONCAT(LEFT(YEAR_MONTH, 4), '-', RIGHT(YEAR_MONTH, 2)) AS YEAR_MONTH, 
-                         COUNT(*) AS MEMBER_COUNT 
+                         COUNT(*) AS MEMBER_COUNT
                          FROM TUVA_PROJECT_DEMO.PMPM.PMPM_BUILDER
                          GROUP BY YEAR_MONTH) AS PB
               ON PT.YEAR_MONTH = PB.YEAR_MONTH;""")
@@ -48,3 +48,5 @@ y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns i
 
 if y_axis:
     st.line_chart(filtered_data,  x='YEAR_MONTH', y=y_axis)
+
+con.close()
