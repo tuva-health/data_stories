@@ -1,0 +1,9 @@
+# Python packages required to run app
+pandas
+numpy
+streamlit
+plost
+snowflake-connector-python
+boto3
+python-dotenv
+pre-commit
