@@ -6,3 +6,4 @@ plost
 snowflake-connector-python
 boto3
 python-dotenv
+pre-commit

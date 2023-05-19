@@ -40,8 +40,8 @@ total_spend = filtered_data['MEDICAL_SPEND'].sum()
 total_member_months = filtered_data['MEMBER_MONTH_COUNT'].sum()
 avg_pmpm = total_spend/total_member_months
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Spend", '${:,.2f}'.format(total_spend))
+col1, col2, col3 = st.columns([1.5,1,1])
+col1.metric("Total Medical Spend", '${:,.2f}'.format(total_spend))
 col2.metric("Total Member Months", total_member_months)
 col3.metric("Average PMPM", '${:,.2f}'.format(avg_pmpm))
 
@@ -54,6 +54,7 @@ if y_axis:
 # Patient Demographic Section
 st.divider()
 st.subheader('Patient Demographics')
+st.write('Patient data static, not filtered by claims date sliders currently')
 
 cs.execute("""SELECT GENDER, COUNT(*) AS COUNT FROM TUVA_PROJECT_DEMO.CORE.PATIENT GROUP BY 1;""")
 demo_gender = cs.fetch_pandas_all()
@@ -75,14 +76,17 @@ demo_age = cs.fetch_pandas_all()
 demo_col1, demo_col2 = st.columns([1, 2])
 with demo_col1:
     plost.donut_chart(demo_gender, theta='COUNT',
-                      color=dict(field='GENDER', scale=dict(range=['#F8B7CD', '#67A3D9'])), legend='left')
+                      color=dict(field='GENDER', scale=dict(range=['#F8B7CD', '#67A3D9'])), legend='left',
+                      title='Gender Breakdown')
 with demo_col2:
     plost.bar_chart(
-        demo_age, bar='AGE_GROUP', value='COUNT', legend=None, use_container_width=True
+        demo_age, bar='AGE_GROUP', value='COUNT', legend=None, use_container_width=True,
+        title='Counts by Age Group'
     )
 
 plost.bar_chart(
-    demo_race, bar='RACE', value='COUNT', color='RACE', legend='bottom', use_container_width=True
+    demo_race, bar='RACE', value='COUNT', color='RACE', legend='bottom', use_container_width=True,
+    title='Counts by Race'
 )
 
 con.close()
