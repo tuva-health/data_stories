@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plost
 import snowflake.connector as sn
 from dotenv import load_dotenv
 import os
@@ -9,6 +10,7 @@ load_dotenv()
 st.markdown("# High Level Summary")
 st.sidebar.markdown("# Claims Summary")
 
+# Connect and fetch data
 con = sn.connect(
     user=os.getenv('SNOWFLAKE_USER'),
     password=os.getenv('SNOWFLAKE_PASSWORD'),
@@ -33,7 +35,7 @@ start_date, end_date = st.select_slider("Select date range for claims summary",
                                         value=(data['YEAR_MONTH'].min(), data['YEAR_MONTH'].max()))
 filtered_data = data.loc[(data['YEAR_MONTH'] >= start_date) & (data['YEAR_MONTH'] <= end_date), :]
 
-### Summary Metrics
+# Summary Metrics
 total_spend = filtered_data['MEDICAL_SPEND'].sum()
 total_member_months = filtered_data['MEMBER_MONTH_COUNT'].sum()
 avg_pmpm = total_spend/total_member_months
@@ -48,5 +50,39 @@ y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns i
 
 if y_axis:
     st.line_chart(filtered_data,  x='YEAR_MONTH', y=y_axis)
+
+# Patient Demographic Section
+st.divider()
+st.subheader('Patient Demographics')
+
+cs.execute("""SELECT GENDER, COUNT(*) AS COUNT FROM TUVA_PROJECT_DEMO.CORE.PATIENT GROUP BY 1;""")
+demo_gender = cs.fetch_pandas_all()
+cs.execute("""SELECT RACE, COUNT(*) AS COUNT FROM TUVA_PROJECT_DEMO.CORE.PATIENT GROUP BY 1;""")
+demo_race = cs.fetch_pandas_all()
+cs.execute("""SELECT CASE 
+                        WHEN div0(current_date() - BIRTH_DATE, 365) < 49 THEN '34-48'
+                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 49 AND div0(current_date() - BIRTH_DATE, 365) < 65 THEN '49-64'
+                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 65 AND div0(current_date() - BIRTH_DATE, 365) < 79 THEN '65-78'
+                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 79 AND div0(current_date() - BIRTH_DATE, 365) < 99 THEN '79-98'
+                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 99 THEN '99+' END
+                AS AGE_GROUP,
+                COUNT(*) AS COUNT
+                FROM TUVA_PROJECT_DEMO.CORE.PATIENT
+                GROUP BY 1
+                ORDER BY 1;""")
+demo_age = cs.fetch_pandas_all()
+
+demo_col1, demo_col2 = st.columns([1, 2])
+with demo_col1:
+    plost.donut_chart(demo_gender, theta='COUNT',
+                      color=dict(field='GENDER', scale=dict(range=['#F8B7CD', '#67A3D9'])), legend='left')
+with demo_col2:
+    plost.bar_chart(
+        demo_age, bar='AGE_GROUP', value='COUNT', legend=None, use_container_width=True
+    )
+
+plost.bar_chart(
+    demo_race, bar='RACE', value='COUNT', color='RACE', legend='bottom', use_container_width=True
+)
 
 con.close()
