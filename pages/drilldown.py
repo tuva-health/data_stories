@@ -58,8 +58,8 @@ st.divider()
 st.markdown("""Inpatient and Outpatient spend are the largest drivers of PMPM during this time period""")
 plost.bar_chart(data=grouped_pmpm, bar='Metric', value=pmpm_cats, stack='normalize',
                 direction='horizontal', legend='top', height=200)
-st.markdown("### Total Pharmacy Spend Over Claim Period**")
-st.markdown("""Pharmacy Spend appears largely steady between 2016 and 2018, averaging between $100k-$200k a month.
+st.markdown("### Total Pharmacy Spend Over Claim Period")
+st.markdown("""Pharmacy Spend appears largely steady between 2016 and 2018, averaging between `$100k-$200k` a month.
 however we do see larger spikes in April 2017 and February 2018""")
 st.line_chart(data=filtered_pmpm_data, x='year_month', y='pharmacy_spend')
 
