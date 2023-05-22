@@ -72,10 +72,10 @@ total_spend = filtered_data['medical_spend'].sum()
 total_member_months = filtered_data['member_month_count'].sum()
 avg_pmpm = total_spend/total_member_months
 
-col1, col2, col3 = st.columns([1.5,1,1])
-col1.metric("Total Medical Spend", '${:,.2f}'.format(total_spend))
-col2.metric("Total Member Months", total_member_months)
-col3.metric("Average PMPM", '${:,.2f}'.format(avg_pmpm))
+col1, col2, col3 = st.columns([1,1,1])
+col1.metric("Total Medical Spend", '${}'.format(util.human_format(total_spend)))
+col2.metric("Total Member Months", util.human_format(total_member_months))
+col3.metric("Average PMPM", '${}'.format(util.human_format(avg_pmpm)))
 
 st.divider()
 y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns if x != 'year_month'])
