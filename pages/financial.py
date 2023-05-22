@@ -271,7 +271,8 @@ chronic_condition_data = chronic_condition_data\
     .groupby("condition_family", as_index=False)\
     [["medical_paid_amount_sum", "member_month_count"]].sum()\
     .assign(medical_paid_amount_pmpm = lambda x: x["medical_paid_amount_sum"] / x["member_month_count"])\
-    .round()
+    .round()\
+    .sort_values("medical_paid_amount_pmpm", ascending=False)
 
 st.dataframe(
     chronic_condition_data[["condition_family", "medical_paid_amount_pmpm"]],
