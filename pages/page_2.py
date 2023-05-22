@@ -6,9 +6,6 @@ from dotenv import load_dotenv
 import os
 import util
 
-st.markdown("# A Further Look")
-st.sidebar.markdown("# Drilldown")
-
 conn = util.connection()
 
 @st.cache_data
@@ -41,6 +38,11 @@ def condition_data():
 pmpm_data = pmpm_data()
 cond_data = condition_data()
 
+st.markdown("# A Further Look")
+st.markdown( """The page below offers insight into several key metrics from the data, including PMPM, 
+pharmacy spend and chronic conditions""")
+st.sidebar.markdown("# Drilldown")
+
 st.markdown("### PMPM Breakdown and Pharmacy Spend Trends")
 start_date, end_date = st.select_slider("Select date range for claims summary",
                                         options=pmpm_data['year_month'].sort_values(),
@@ -53,15 +55,19 @@ pmpm_cats = ['inpatient_pmpm', 'outpatient_pmpm', 'office_visit_pmpm', 'ancillar
 grouped_pmpm = filtered_pmpm_data.groupby(by='Metric', as_index=False)[pmpm_cats].mean()
 
 st.divider()
+st.markdown("""Inpatient and Outpatient spend are the largest drivers of PMPM during this time period""")
 plost.bar_chart(data=grouped_pmpm, bar='Metric', value=pmpm_cats, stack='normalize',
-                direction='horizontal', legend='top', title='Average PMPM Broken out by Category',
-                height=200)
-st.markdown("**Total Pharmacy Spend Over Claim Period**")
+                direction='horizontal', legend='top', height=200)
+st.markdown("### Total Pharmacy Spend Over Claim Period**")
+st.markdown("""Pharmacy Spend appears largely steady between 2016 and 2018, averaging between $100k-$200k a month.
+however we do see larger spikes in April 2017 and February 2018""")
 st.line_chart(data=filtered_pmpm_data, x='year_month', y='pharmacy_spend')
 
 st.divider()
 
-st.markdown("**Top 5 Condition Diagnoses Over Claim Period**")
+st.markdown("### Top 5 Condition Diagnoses Over Claim Period")
+st.markdown("""The chart below shows trends in new cases of the top five chronic conditions during the 
+claims period selected.""")
 msk = (cond_data['diagnosis_year_month'] >= str(start_date)) & (cond_data['diagnosis_year_month'] <= str(end_date))
 filtered_cond_data = cond_data.loc[msk, :]
 top5_conditions = filtered_cond_data.groupby('condition')['condition_cases'].sum().nlargest(5)
