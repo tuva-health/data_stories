@@ -7,6 +7,17 @@ import util
 conn = util.connection(database="dev_lipsa")
 
 @st.cache_data
+def cost_summary():
+    query = """
+        select *
+        from dbt_lipsa.cost_summary
+        order by 1, 2, 3
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
 def year_months():
     query = """
         select distinct
@@ -266,3 +277,11 @@ st.dataframe(
     chronic_condition_data[["condition_family", "medical_paid_amount_pmpm"]],
     use_container_width=True
 )
+
+
+## --------------------------------- ##
+## Cost Variables
+## --------------------------------- ##
+st.markdown("## Cost Variable Quality Summary")
+cost_summary_data = cost_summary()
+st.dataframe(cost_summary_data, use_container_width=True)
