@@ -226,15 +226,18 @@ st.altair_chart(service_1_chart, use_container_width=True)
 ## --------------------------------- ##
 ## Service Category 2
 ## --------------------------------- ##
-st.markdown("""
-Use the following dropdown to get more detail on the service category that interested you.
-""")
 service_cat_options = service_1_data["service_category_1"].drop_duplicates().tolist()
-selected_service_cat = st.selectbox(
-    label="Select a Service Category",
-    options=service_cat_options,
-    label_visibility='collapsed',
-)
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("""
+    Use the following dropdown to get more detail on the service category that interested you.
+    """)
+with col2:
+    selected_service_cat = st.selectbox(
+        label="Select a Service Category",
+        options=service_cat_options,
+        label_visibility='collapsed',
+    )
 
 service_2_data = pmpm_by_service_category_1_2()
 service_2_data = service_2_data.loc[
