@@ -128,7 +128,7 @@ with demo_col1:
 with demo_col2:
     plost.bar_chart(
         demo_age, bar='age_group', value='count', legend=None, use_container_width=True,
-        title='Counts by Age Group'
+        title='Counts by Age Group', direction='horizontal', height=300
     )
 
 plost.bar_chart(
