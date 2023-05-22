@@ -18,10 +18,11 @@ def financial_bans(summary_stats_data):
 
     summary_stats_data = summary_stats_data.copy(deep=True)
     summary_stats_data = summary_stats_data.loc[summary_stats_data["year"] == year_values[-1]]
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Medical Spend", util.human_format(summary_stats_data["medical_paid_amount"].iloc[0]))
     col2.metric("Pharmacy Spend", util.human_format(summary_stats_data["pharmacy_paid_amount"].iloc[0]))
     col3.metric("Member Months", util.human_format(summary_stats_data["member_month_count"].iloc[0]))
+    col4.metric('Average PMPM', util.human_format(summary_stats_data[""]))
 
 
 def year_slider(year_values):
