@@ -13,9 +13,10 @@ conn = util.connection()
 
 @st.cache_data
 def summary_data():
-    query = """SELECT PT.*, PB.MEMBER_COUNT FROM TUVA_PROJECT_DEMO.PMPM.PMPM_TRENDS PT
+    query = """SELECT PT.*, PB.MEMBER_COUNT, PHARMACY_SPEND FROM TUVA_PROJECT_DEMO.PMPM.PMPM_TRENDS PT
               LEFT JOIN (SELECT CONCAT(LEFT(YEAR_MONTH, 4), '-', RIGHT(YEAR_MONTH, 2)) AS YEAR_MONTH, 
-                         COUNT(*) AS MEMBER_COUNT
+                         COUNT(*) AS MEMBER_COUNT,
+                         SUM(PHARMACY_PAID) AS PHARMACY_SPEND
                          FROM TUVA_PROJECT_DEMO.PMPM.PMPM_BUILDER
                          GROUP BY YEAR_MONTH) AS PB
               ON PT.YEAR_MONTH = PB.YEAR_MONTH;"""
@@ -71,11 +72,13 @@ st.sidebar.markdown("# Claims Summary")
 total_spend = filtered_data['medical_spend'].sum()
 total_member_months = filtered_data['member_month_count'].sum()
 avg_pmpm = total_spend/total_member_months
+total_pharm_spend = filtered_data['pharmacy_spend'].sum()
 
-col1, col2, col3 = st.columns([1,1,1])
+col1, col2, col3, col4 = st.columns([1,1,1,1])
 col1.metric("Total Medical Spend", '${}'.format(util.human_format(total_spend)))
 col2.metric("Total Member Months", util.human_format(total_member_months))
 col3.metric("Average PMPM", '${}'.format(util.human_format(avg_pmpm)))
+col4.metric('Total Pharmacy Spend', '${}'.format(util.human_format(total_pharm_spend)))
 
 st.divider()
 y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns if x != 'year_month'])
