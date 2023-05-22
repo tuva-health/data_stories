@@ -5,6 +5,7 @@ import snowflake.connector as sn
 from dotenv import load_dotenv
 import os
 import util
+import components as comp
 
 load_dotenv()
 
@@ -12,7 +13,38 @@ load_dotenv()
 conn = util.connection()
 
 @st.cache_data
-def summary_data():
+def summary_stats():
+    query = """
+        with medical as (
+           select distinct
+               year(claim_end_date)::text year
+               , sum(paid_amount) as medical_paid_amount
+           from core.medical_claim
+           group by 1
+        )
+        , pharmacy as (
+           select
+               year(dispensing_date)::text year
+               , sum(paid_amount) as pharmacy_paid_amount
+           from core.pharmacy_claim
+           group by 1
+        ), elig as (
+           select
+               substr(year_month, 0, 4) as year
+               , sum(member_month_count) as member_month_count
+           from pmpm._int_member_month_count
+           group by 1
+        )
+        select *
+        from medical
+        join pharmacy using(year)
+        join elig using(year)
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+@st.cache_data
+def pmpm_data():
     query = """SELECT PT.*, PB.MEMBER_COUNT, PHARMACY_SPEND FROM TUVA_PROJECT_DEMO.PMPM.PMPM_TRENDS PT
               LEFT JOIN (SELECT CONCAT(LEFT(YEAR_MONTH, 4), '-', RIGHT(YEAR_MONTH, 2)) AS YEAR_MONTH, 
                          COUNT(*) AS MEMBER_COUNT,
@@ -23,6 +55,8 @@ def summary_data():
 
     data = util.safe_to_pandas(conn, query)
     data['year_month'] = pd.to_datetime(data['year_month'], format='%Y-%m').dt.date
+    data['year'] = pd.to_datetime(data['year_month'], format='%Y-%m').dt.year
+    data['pharmacy_spend'] = data['pharmacy_spend'].astype(float)
     return data
 
 @st.cache_data
@@ -52,39 +86,32 @@ def age_data():
                 ORDER BY 1;"""
     data = util.safe_to_pandas(conn, query)
     return data
-data = summary_data()
+
+
+cost_data = summary_stats()
+data = pmpm_data()
 demo_gender = gender_data()
 demo_race = race_data()
 demo_age = age_data()
 
 st.markdown("# Summary of Claims")
-start_date, end_date = st.select_slider("Select date range for claims summary",
-                                        options=data['year_month'].sort_values(),
-                                        value=(data['year_month'].min(), data['year_month'].max()))
-filtered_data = data.loc[(data['year_month'] >= start_date) & (data['year_month'] <= end_date), :]
+start_year, end_year = st.select_slider("Select date range for claims summary",
+                                        options=sorted(list(set(data['year']))),
+                                        value=(data['year'].min(), data['year'].max()))
+filtered_cost_data = cost_data.loc[(cost_data['year'] >= str(start_year)) & (cost_data['year'] <= str(end_year)), :]
+filtered_pmpm_data = data.loc[(data['year'] >= start_year) & (data['year'] <= end_year), :]
 
 st.markdown("### High Level Summary")
 st.markdown("""At a glance, see the total medical spend and PMPM for the chosen time period. As well as a trend
 graph for other important financial metrics""")
 st.sidebar.markdown("# Claims Summary")
-
-# Summary Metrics
-total_spend = filtered_data['medical_spend'].sum()
-total_member_months = filtered_data['member_month_count'].sum()
-avg_pmpm = total_spend/total_member_months
-total_pharm_spend = filtered_data['pharmacy_spend'].sum()
-
-col1, col2, col3, col4 = st.columns([1,1,1,1])
-col1.metric("Total Medical Spend", '${}'.format(util.human_format(total_spend)))
-col2.metric("Total Member Months", util.human_format(total_member_months))
-col3.metric("Average PMPM", '${}'.format(util.human_format(avg_pmpm)))
-col4.metric('Total Pharmacy Spend', '${}'.format(util.human_format(total_pharm_spend)))
+comp.financial_bans(filtered_cost_data)
 
 st.divider()
-y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns if x != 'year_month'])
+y_axis = st.selectbox('Select Metric for Trend Line', [x for x in data.columns if 'year' not in x])
 
 if y_axis:
-    st.line_chart(filtered_data,  x='year_month', y=y_axis)
+    st.line_chart(filtered_pmpm_data,  x='year_month', y=y_axis)
 
 # Patient Demographic Section
 st.divider()
