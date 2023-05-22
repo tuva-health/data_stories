@@ -3,6 +3,7 @@ import pandas as pd
 import altair as alt
 import plost
 import util
+import components as comp
 
 conn = util.connection(database="dev_lipsa")
 
@@ -150,19 +151,10 @@ year_values = sorted(list(set([x[:4] for x in year_month_values['year_month']]))
 ## Header
 ## --------------------------------- ##
 st.markdown("# Financial Overview")
-st.markdown(f"""
-These financial summary charts offer a concise and comprehensive snapshot of your organization's financial performance, providing key metrics and insights at a glance.
-
-The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
-paid amount and member months.
-""")
-st.markdown(f"## Spend Summary in {year_values[-1]}")
 summary_stats_data = summary_stats()
 summary_stats_data = summary_stats_data.loc[summary_stats_data["year"] == year_values[-1]]
-col1, col2, col3 = st.columns(3)
-col1.metric("Medical Spend", util.human_format(summary_stats_data["medical_paid_amount"].iloc[0]))
-col2.metric("Pharmacy Spend", util.human_format(summary_stats_data["pharmacy_paid_amount"].iloc[0]))
-col3.metric("Member Months", util.human_format(summary_stats_data["member_month_count"].iloc[0]))
+
+comp.financial_bans(summary_stats_data)
 
 st.divider()
 st.markdown("""
