@@ -6,6 +6,7 @@ import util
 
 conn = util.connection(database="dev_lipsa")
 
+
 @st.cache_data
 def cost_summary():
     query = """
@@ -103,7 +104,6 @@ def pmpm_by_claim_type():
     return data
 
 
-
 @st.cache_data
 def pmpm_by_service_category_1():
     query = """
@@ -162,32 +162,48 @@ year_values = sorted(list(set([x[:4] for x in year_month_values])))
 ## Header
 ## --------------------------------- ##
 st.markdown("# Financial Overview")
-st.markdown(f"""
+st.markdown(
+    f"""
 These financial summary charts offer a concise and comprehensive snapshot of your organization's financial performance, providing key metrics and insights at a glance.
 
 The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
 paid amount and member months.
-""")
+"""
+)
 st.markdown(f"## Spend Summary in {year_values[-1]}")
 summary_stats_data = summary_stats()
-summary_stats_data = summary_stats_data.loc[summary_stats_data["year"] == year_values[-1]]
+summary_stats_data = summary_stats_data.loc[
+    summary_stats_data["year"] == year_values[-1]
+]
 col1, col2, col3 = st.columns(3)
-col1.metric("Medical Spend", util.human_format(summary_stats_data["medical_paid_amount"].iloc[0]))
-col2.metric("Pharmacy Spend", util.human_format(summary_stats_data["pharmacy_paid_amount"].iloc[0]))
-col3.metric("Member Months", util.human_format(summary_stats_data["member_month_count"].iloc[0]))
+col1.metric(
+    "Medical Spend",
+    util.human_format(summary_stats_data["medical_paid_amount"].iloc[0]),
+)
+col2.metric(
+    "Pharmacy Spend",
+    util.human_format(summary_stats_data["pharmacy_paid_amount"].iloc[0]),
+)
+col3.metric(
+    "Member Months", util.human_format(summary_stats_data["member_month_count"].iloc[0])
+)
 
 st.divider()
-st.markdown("""
+st.markdown(
+    """
 Use the following time slider to cut the following charts by the year range of your interest.
-""")
+"""
+)
 
 start_year, end_year = st.select_slider(
     label="Select a range of years",
     options=year_values,
     value=(year_values[0], year_values[-1]),
-    label_visibility='collapsed'
+    label_visibility="collapsed",
 )
-selected_range = year_values[year_values.index(start_year): year_values.index(end_year)+1]
+selected_range = year_values[
+    year_values.index(start_year) : year_values.index(end_year) + 1
+]
 
 
 ## --------------------------------- ##
@@ -197,22 +213,27 @@ pmpm_claim_type_data = pmpm_by_claim_type()
 pmpm_claim_type_data = pmpm_claim_type_data.loc[
     pmpm_claim_type_data["year_month"].str[:4].isin(selected_range)
 ]
-pmpm_claim_type_data = pmpm_claim_type_data\
-    .groupby("claim_type", as_index=False)\
-    [["paid_amount_sum", "member_month_count"]].sum()\
-    .assign(paid_amount_pmpm = lambda x: x["paid_amount_sum"] / x["member_month_count"])
+pmpm_claim_type_data = (
+    pmpm_claim_type_data.groupby("claim_type", as_index=False)[
+        ["paid_amount_sum", "member_month_count"]
+    ]
+    .sum()
+    .assign(paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"])
+)
 
 st.markdown("## Claim Type")
-st.markdown("""
+st.markdown(
+    """
 Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
-""")
+"""
+)
 plost.bar_chart(
     data=pmpm_claim_type_data,
-    bar='claim_type',
-    value='paid_amount_pmpm',
-    direction='horizontal',
-    legend='top',
-    height=200
+    bar="claim_type",
+    value="paid_amount_pmpm",
+    direction="horizontal",
+    legend="top",
+    height=200,
 )
 
 
@@ -220,25 +241,30 @@ plost.bar_chart(
 ## Service Category 1
 ## --------------------------------- ##
 st.markdown("## Service Category")
-st.markdown("""
+st.markdown(
+    """
 Analyzing medical claims by service category allows healthcare insurers to identify patterns, trends, and cost drivers in the service type being performed for the patient.
 
 Here we see that, **outpatient and inpatient spend** have the highest amount of variation over time. Overall spend
 seems to **spike in 2018**, driven by a large increase in outpatient spend 1 month and inpatient
 spend the next.
-""")
+"""
+)
 service_1_data = pmpm_by_service_category_1()
 service_1_data = service_1_data.loc[
     service_1_data["year_month"].str[:4].isin(selected_range)
 ]
 
-service_1_chart = alt.Chart(service_1_data).mark_bar().encode(
-    x="year_month",
-    y=alt.Y("paid_amount_pmpm"),
-    color="service_category_1:N",
-    tooltip=["service_category_1", "paid_amount_pmpm"]
-).configure_legend(
-  orient='bottom'
+service_1_chart = (
+    alt.Chart(service_1_data)
+    .mark_bar()
+    .encode(
+        x="year_month",
+        y=alt.Y("paid_amount_pmpm"),
+        color="service_category_1:N",
+        tooltip=["service_category_1", "paid_amount_pmpm"],
+    )
+    .configure_legend(orient="bottom")
 )
 
 st.altair_chart(service_1_chart, use_container_width=True)
@@ -249,42 +275,54 @@ st.altair_chart(service_1_chart, use_container_width=True)
 service_cat_options = service_1_data["service_category_1"].drop_duplicates().tolist()
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown("""
+    st.markdown(
+        """
     Use the following dropdown to get more detail on the service category that interested you.
-    """)
+    """
+    )
 with col2:
     selected_service_cat = st.selectbox(
         label="Select a Service Category",
         options=service_cat_options,
-        label_visibility='collapsed',
+        label_visibility="collapsed",
     )
 with col3:
     selected_year_month = st.selectbox(
         label="Select a Year Month",
         options=["All Time"] + year_month_values,
-        label_visibility='collapsed',
+        label_visibility="collapsed",
     )
 
 service_2_data = pmpm_by_service_category_1_2()
-service_2_data = service_2_data.loc[
-    service_2_data["year_month"].str[:4].isin(selected_range)
-    & (
-        (service_2_data["year_month"] == selected_year_month) |
-        (selected_year_month == "All Time")
-    )
-    & service_2_data["service_category_1"].isin([selected_service_cat])
-].drop("service_category_1", axis=1).reset_index(drop=True)
-service_2_data = service_2_data\
-    .groupby("service_category_2", as_index=False)\
-    [["paid_amount_sum", "member_month_count"]].sum()\
-    .assign(paid_amount_pmpm = lambda x: x["paid_amount_sum"] / x["member_month_count"])
+service_2_data = (
+    service_2_data.loc[
+        service_2_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (service_2_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & service_2_data["service_category_1"].isin([selected_service_cat])
+    ]
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
+)
+service_2_data = (
+    service_2_data.groupby("service_category_2", as_index=False)[
+        ["paid_amount_sum", "member_month_count"]
+    ]
+    .sum()
+    .assign(paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"])
+)
 
-service_2_chart = alt.Chart(service_2_data).mark_bar().encode(
-    x="paid_amount_pmpm",
-    y=alt.Y("service_category_2", sort="-x", axis=alt.Axis(labelLimit=300)),
-    tooltip=["service_category_2", "paid_amount_pmpm"],
-).properties(
-    height=300
+service_2_chart = (
+    alt.Chart(service_2_data)
+    .mark_bar()
+    .encode(
+        x="paid_amount_pmpm",
+        y=alt.Y("service_category_2", sort="-x", axis=alt.Axis(labelLimit=300)),
+        tooltip=["service_category_2", "paid_amount_pmpm"],
+    )
+    .properties(height=300)
 )
 
 st.altair_chart(service_2_chart, use_container_width=True)
@@ -294,8 +332,10 @@ st.altair_chart(service_2_chart, use_container_width=True)
 ## Cost Variables
 ## --------------------------------- ##
 st.markdown("## Cost Variable Quality Summary")
-st.markdown("""
+st.markdown(
+    """
 Explore common descriptive statistics to gain a comprehensive understanding of the quality and distribution of a particular claim cost variable.
-""")
+"""
+)
 cost_summary_data = cost_summary()
 st.dataframe(cost_summary_data, use_container_width=True)
