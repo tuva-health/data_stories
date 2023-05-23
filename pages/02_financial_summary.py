@@ -181,6 +181,17 @@ start_year, end_year = st.select_slider(
 )
 selected_range = year_values[year_values.index(start_year): year_values.index(end_year)+1]
 
+## --------------------------------- ##
+## --- Pharmacy Spend            --- ##
+## --------------------------------- ##
+st.markdown("## Pharmacy Spend")
+st.markdown("""
+A look at pharmacy spend over time during the claims period selected.
+""")
+pharm_pmpm = pmpm_by_claim_type()
+pharm_pmpm = pharm_pmpm.loc[pharm_pmpm['claim_type'] == 'pharmacy', :]
+pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["year_month"].str[:4].isin(selected_range)]
+st.line_chart(data=pharm_pmpm, x='year_month', y='paid_amount_sum')
 
 ## --------------------------------- ##
 ## ---                           --- ##
