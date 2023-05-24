@@ -65,6 +65,19 @@ def pmpm_by_chronic_condition():
     data = util.safe_to_pandas(conn, query)
     return data
 
+@st.cache_data
+def condition_data():
+    query = """SELECT
+                CONCAT(date_part(year, FIRST_DIAGNOSIS_DATE), '-', lpad(date_part(month, FIRST_DIAGNOSIS_DATE), 2, 0)) AS DIAGNOSIS_YEAR_MONTH,
+                CONDITION,
+                COUNT(*) AS CONDITION_CASES,
+                AVG(LAST_DIAGNOSIS_DATE + 1 - FIRST_DIAGNOSIS_DATE) AS DIAGNOSIS_DURATION
+              FROM TUVA_PROJECT_DEMO.CHRONIC_CONDITIONS.TUVA_CHRONIC_CONDITIONS_LONG
+              GROUP BY 1,2
+              ORDER BY 3 DESC;"""
+    data = util.safe_to_pandas(conn, query)
+    data['diagnosis_year'] = pd.to_datetime(data['diagnosis_year_month']).dt.year.astype(str)
+    return data
 
 ## --------------------------------- ##
 ## Chronic Condition
@@ -80,6 +93,7 @@ year_values = sorted(list(set([x[:4] for x in year_month_values['year_month']]))
 selected_range = components.year_slider(year_values)
 
 
+chronic_condition_counts = condition_data()
 chronic_condition_data = pmpm_by_chronic_condition()
 chronic_condition_data = chronic_condition_data.loc[
     chronic_condition_data["year_month"].str[:4].isin(selected_range)
@@ -95,3 +109,20 @@ st.dataframe(
     chronic_condition_data[["condition_family", "medical_paid_amount_pmpm"]],
     use_container_width=True
 )
+st.divider()
+
+st.markdown("### Top 5 Condition Diagnoses Over Claim Period")
+st.markdown("""The chart below shows trends in new cases of the top five chronic conditions during the 
+claims period selected.""")
+msk = chronic_condition_counts['diagnosis_year'].isin(selected_range)
+filtered_cond_data = chronic_condition_counts.loc[msk, :]
+top5_conditions = filtered_cond_data.groupby('condition')['condition_cases'].sum().nlargest(5)
+msk = filtered_cond_data['condition'].isin(top5_conditions.index)
+top5_filtered_cond = filtered_cond_data.loc[msk, :]
+
+plost.line_chart(data=top5_filtered_cond,
+                 x='diagnosis_year_month',
+                 y='condition_cases',
+                 color='condition',
+                 pan_zoom=None,
+                 height=400)
