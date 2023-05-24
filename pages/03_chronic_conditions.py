@@ -7,6 +7,7 @@ import components
 
 conn = util.connection(database="dev_lipsa")
 
+
 @st.cache_data
 def year_months():
     query = """
@@ -65,6 +66,7 @@ def pmpm_by_chronic_condition():
     data = util.safe_to_pandas(conn, query)
     return data
 
+
 @st.cache_data
 def condition_data():
     query = """SELECT
@@ -76,20 +78,25 @@ def condition_data():
               GROUP BY 1,2
               ORDER BY 3 DESC;"""
     data = util.safe_to_pandas(conn, query)
-    data['diagnosis_year'] = pd.to_datetime(data['diagnosis_year_month']).dt.year.astype(str)
+    data["diagnosis_year"] = pd.to_datetime(
+        data["diagnosis_year_month"]
+    ).dt.year.astype(str)
     return data
+
 
 ## --------------------------------- ##
 ## Chronic Condition
 ## --------------------------------- ##
 st.markdown("## Chronic Condition")
-st.markdown("""
+st.markdown(
+    """
 Certain conditions will be more expensive in your population. Here we see that the top driver of spend
 is `Cardiovascular disease`. The second highest driver is `Metabolic Disease`.
-""")
+"""
+)
 
 year_month_values = year_months()
-year_values = sorted(list(set([x[:4] for x in year_month_values['year_month']])))
+year_values = sorted(list(set([x[:4] for x in year_month_values["year_month"]])))
 selected_range = components.year_slider(year_values)
 
 
@@ -98,31 +105,43 @@ chronic_condition_data = pmpm_by_chronic_condition()
 chronic_condition_data = chronic_condition_data.loc[
     chronic_condition_data["year_month"].str[:4].isin(selected_range)
 ]
-chronic_condition_data = chronic_condition_data\
-    .groupby("condition_family", as_index=False)\
-    [["medical_paid_amount_sum", "member_month_count"]].sum()\
-    .assign(medical_paid_amount_pmpm = lambda x: x["medical_paid_amount_sum"] / x["member_month_count"])\
-    .round()\
+chronic_condition_data = (
+    chronic_condition_data.groupby("condition_family", as_index=False)[
+        ["medical_paid_amount_sum", "member_month_count"]
+    ]
+    .sum()
+    .assign(
+        medical_paid_amount_pmpm=lambda x: x["medical_paid_amount_sum"]
+        / x["member_month_count"]
+    )
+    .round()
     .sort_values("medical_paid_amount_pmpm", ascending=False)
+)
 
 st.dataframe(
     chronic_condition_data[["condition_family", "medical_paid_amount_pmpm"]],
-    use_container_width=True
+    use_container_width=True,
 )
 st.divider()
 
 st.markdown("### Top 5 Condition Diagnoses Over Claim Period")
-st.markdown("""The chart below shows trends in new cases of the top five chronic conditions during the 
-claims period selected.""")
-msk = chronic_condition_counts['diagnosis_year'].isin(selected_range)
+st.markdown(
+    """The chart below shows trends in new cases of the top five chronic conditions during the
+claims period selected."""
+)
+msk = chronic_condition_counts["diagnosis_year"].isin(selected_range)
 filtered_cond_data = chronic_condition_counts.loc[msk, :]
-top5_conditions = filtered_cond_data.groupby('condition')['condition_cases'].sum().nlargest(5)
-msk = filtered_cond_data['condition'].isin(top5_conditions.index)
+top5_conditions = (
+    filtered_cond_data.groupby("condition")["condition_cases"].sum().nlargest(5)
+)
+msk = filtered_cond_data["condition"].isin(top5_conditions.index)
 top5_filtered_cond = filtered_cond_data.loc[msk, :]
 
-plost.line_chart(data=top5_filtered_cond,
-                 x='diagnosis_year_month',
-                 y='condition_cases',
-                 color='condition',
-                 pan_zoom=None,
-                 height=400)
+plost.line_chart(
+    data=top5_filtered_cond,
+    x="diagnosis_year_month",
+    y="condition_cases",
+    color="condition",
+    pan_zoom=None,
+    height=400,
+)
