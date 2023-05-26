@@ -10,7 +10,7 @@ import components as comp
 load_dotenv()
 
 # Connect and fetch data
-conn = util.connection()
+conn = util.connection(database="dev_lipsa")
 
 
 @st.cache_data
@@ -47,11 +47,11 @@ def summary_stats():
 
 @st.cache_data
 def pmpm_data():
-    query = """SELECT PT.*, PB.MEMBER_COUNT, PHARMACY_SPEND FROM TUVA_PROJECT_DEMO.PMPM.PMPM_TRENDS PT
+    query = """SELECT PT.*, PB.MEMBER_COUNT, PHARMACY_SPEND FROM PMPM.PMPM_TRENDS PT
               LEFT JOIN (SELECT CONCAT(LEFT(YEAR_MONTH, 4), '-', RIGHT(YEAR_MONTH, 2)) AS YEAR_MONTH,
                          COUNT(*) AS MEMBER_COUNT,
                          SUM(PHARMACY_PAID) AS PHARMACY_SPEND
-                         FROM TUVA_PROJECT_DEMO.PMPM.PMPM_BUILDER
+                         FROM PMPM.PMPM_BUILDER
                          GROUP BY YEAR_MONTH) AS PB
               ON PT.YEAR_MONTH = PB.YEAR_MONTH;"""
 
@@ -65,14 +65,14 @@ def pmpm_data():
 
 @st.cache_data
 def gender_data():
-    query = """SELECT GENDER, COUNT(*) AS COUNT FROM TUVA_PROJECT_DEMO.CORE.PATIENT GROUP BY 1;"""
+    query = """SELECT GENDER, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
     data = util.safe_to_pandas(conn, query)
     return data
 
 
 @st.cache_data
 def race_data():
-    query = """SELECT RACE, COUNT(*) AS COUNT FROM TUVA_PROJECT_DEMO.CORE.PATIENT GROUP BY 1;"""
+    query = """SELECT RACE, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
     data = util.safe_to_pandas(conn, query)
     return data
 
@@ -87,7 +87,7 @@ def age_data():
                         WHEN div0(current_date() - BIRTH_DATE, 365) >= 99 THEN '99+' END
                 AS AGE_GROUP,
                 COUNT(*) AS COUNT
-                FROM TUVA_PROJECT_DEMO.CORE.PATIENT
+                FROM CORE.PATIENT
                 GROUP BY 1
                 ORDER BY 1;"""
     data = util.safe_to_pandas(conn, query)
