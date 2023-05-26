@@ -74,7 +74,7 @@ def condition_data():
                 CONDITION,
                 COUNT(*) AS CONDITION_CASES,
                 AVG(LAST_DIAGNOSIS_DATE + 1 - FIRST_DIAGNOSIS_DATE) AS DIAGNOSIS_DURATION
-              FROM TUVA_PROJECT_DEMO.CHRONIC_CONDITIONS.TUVA_CHRONIC_CONDITIONS_LONG
+              FROM CHRONIC_CONDITIONS.TUVA_CHRONIC_CONDITIONS_LONG
               GROUP BY 1,2
               ORDER BY 3 DESC;"""
     data = util.safe_to_pandas(conn, query)
