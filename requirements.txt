@@ -8,3 +8,4 @@ boto3
 python-dotenv
 pre-commit
 black
+streamlit-echarts

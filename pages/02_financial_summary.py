@@ -4,6 +4,8 @@ import altair as alt
 import plost
 import util
 import components as comp
+import streamlit_echarts as st_e
+import time
 
 conn = util.connection(database="dev_lipsa")
 
@@ -158,26 +160,33 @@ def pmpm_by_service_category_1_2():
 
 year_month_values = sorted(list(set(year_months()["year_month"])))
 year_values = sorted(list(set([x[:4] for x in year_month_values])))
+## --------------------------------- ##
+## ---                           --- ##
+## --------------------------------- ##
+pmpm_claim_type_data = pmpm_by_claim_type()
+pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
+st.markdown("## Claim Type")
+st.markdown(
+    """
+Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
+"""
+)
+
+
+def plot_lines(df):
+    lines = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(x="year_month:T", y="paid_amount_pmpm:Q", color="claim_type:N")
+        .properties(width=600, height=400)
+    )
+    return lines
+
 
 ## --------------------------------- ##
 ## Header
 ## --------------------------------- ##
 st.markdown("# Financial Overview")
-
-summary_stats_data = summary_stats()
-summary_stats_data = summary_stats_data.loc[
-    summary_stats_data["year"] == year_values[-1]
-]
-
-comp.financial_bans(summary_stats_data)
-
-st.divider()
-st.markdown(
-    """
-Use the following time slider to cut the following charts by the year range of your interest.
-"""
-)
-
 start_year, end_year = st.select_slider(
     label="Select a range of years",
     options=year_values,
@@ -187,35 +196,48 @@ start_year, end_year = st.select_slider(
 selected_range = year_values[
     year_values.index(start_year) : year_values.index(end_year) + 1
 ]
+if len(year_values) == 1:
+    year_string = year_values[0]
+else:
+    year_string = "{} - {}".format(year_values[0], year_values[-1])
+st.markdown(
+    f"""
+    These financial summary charts offer a concise and comprehensive snapshot of your organization's financial
+    performance, providing key metrics and insights at a glance.
 
-## --------------------------------- ##
-## ---                           --- ##
-## --------------------------------- ##
-pmpm_claim_type_data = pmpm_by_claim_type()
-pmpm_claim_type_data = pmpm_claim_type_data.loc[
-    pmpm_claim_type_data["year_month"].str[:4].isin(selected_range)
-]
-pmpm_claim_type_data = (
-    pmpm_claim_type_data.groupby("claim_type", as_index=False)[
-        ["paid_amount_sum", "member_month_count"]
-    ]
-    .sum()
-    .assign(paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"])
+    The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
+    paid amount and pmpm."""
 )
+st.markdown(f"### Spend Summary in {year_string}")
+summary_stats_data = summary_stats()
+summary_stats_data = summary_stats_data.loc[
+    summary_stats_data["year"] == year_values[-1]
+]
 
-st.markdown("## Claim Type")
+col1, col2 = st.columns([1, 3])
+with col1:
+    comp.financial_bans(summary_stats_data, direction="vertical")
+with col2:
+    N = pmpm_claim_type_data.shape[0]  # number of elements in the dataframe
+    burst = 3  # number of elements (months) to add to the plot
+    size = burst  # size of the current dataset
+
+    lines = plot_lines(pmpm_claim_type_data)
+    line_plot = st.altair_chart(lines)
+    for i in range(1, N):
+        step_df = pmpm_claim_type_data.iloc[0:size]
+        lines = plot_lines(step_df)
+        line_plot = line_plot.altair_chart(lines)
+        size = i + burst
+        if size >= N:
+            size = N - 1
+        time.sleep(0.001)
+
+st.divider()
 st.markdown(
     """
-Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
+Use the following time slider to cut the following charts by the year range of your interest.
 """
-)
-plost.bar_chart(
-    data=pmpm_claim_type_data,
-    bar="claim_type",
-    value="paid_amount_pmpm",
-    direction="horizontal",
-    legend="top",
-    height=200,
 )
 
 
