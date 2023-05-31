@@ -4,7 +4,7 @@ import altair as alt
 import plost
 import util
 import components as comp
-import streamlit_echarts as st_e
+from streamlit_echarts import st_echarts
 import time
 
 conn = util.connection(database="dev_lipsa")
@@ -158,6 +158,61 @@ def pmpm_by_service_category_1_2():
     return data
 
 
+def claim_type_line_chart(df, animated=True):
+    if animated:
+        t = st.session_state["iteration"]
+        month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
+        anim_data = df.loc[df["year_month"] <= month_list[t], :]
+        list_data = [anim_data.columns.to_list()] + anim_data.values.tolist()
+    else:
+        list_data = [df.columns.to_list()] + df.values.tolist()
+    series = list(set(df["claim_type"]))
+    datasetWithFilters = [
+        {
+            "id": f"dataset_{s}",
+            "fromDatasetId": "dataset_raw",
+            "transform": {
+                "type": "filter",
+                "config": {
+                    "and": [
+                        {"dimension": "claim_type", "=": s},
+                    ]
+                },
+            },
+        }
+        for s in series
+    ]
+    seriesList = [
+        {
+            "type": "line",
+            "datasetId": f"dataset_{s}",
+            "showSymbol": False,
+            "name": s,
+            "labelLayout": {"moveOverlap": "shiftY"},
+            "emphasis": {"focus": "series"},
+            "encode": {
+                "x": "year_month",
+                "y": "paid_amount_pmpm",
+                "label": ["claim_type", "paid_amount_pmpm"],
+                "itemName": "year_month",
+                "tooltip": ["paid_amount_pmpm"],
+            },
+        }
+        for s in series
+    ]
+    option = {
+        "animationDuration": 10000,
+        "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
+        "title": {"text": "Paid Amount PMPM by Claim Type"},
+        "tooltip": {"order": "valueDesc", "trigger": "axis"},
+        "xAxis": {"type": "category", "nameLocation": "middle"},
+        "yAxis": {"name": "PMPM"},
+        "grid": {"right": 140},
+        "series": seriesList,
+    }
+    st_echarts(options=option, height="400px", key="chart")
+
+
 year_month_values = sorted(list(set(year_months()["year_month"])))
 year_values = sorted(list(set([x[:4] for x in year_month_values])))
 ## --------------------------------- ##
@@ -171,17 +226,6 @@ st.markdown(
 Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
 """
 )
-
-
-def plot_lines(df):
-    lines = (
-        alt.Chart(df)
-        .mark_line()
-        .encode(x="year_month:T", y="paid_amount_pmpm:Q", color="claim_type:N")
-        .properties(width=600, height=400)
-    )
-    return lines
-
 
 ## --------------------------------- ##
 ## Header
@@ -214,24 +258,26 @@ summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"] == year_values[-1]
 ]
 
+if "iteration" not in st.session_state:
+    st.session_state["iteration"] = 0
+
 col1, col2 = st.columns([1, 3])
 with col1:
     comp.financial_bans(summary_stats_data, direction="vertical")
 with col2:
-    N = pmpm_claim_type_data.shape[0]  # number of elements in the dataframe
-    burst = 3  # number of elements (months) to add to the plot
-    size = burst  # size of the current dataset
+    animate = True
+    month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
+    if animate:
+        while st.session_state["iteration"] < len(month_list):
+            claim_type_line_chart(pmpm_claim_type_data, True)
+            time.sleep(0.05)
+            st.session_state["iteration"] += 1
 
-    lines = plot_lines(pmpm_claim_type_data)
-    line_plot = st.altair_chart(lines)
-    for i in range(1, N):
-        step_df = pmpm_claim_type_data.iloc[0:size]
-        lines = plot_lines(step_df)
-        line_plot = line_plot.altair_chart(lines)
-        size = i + burst
-        if size >= N:
-            size = N - 1
-        time.sleep(0.001)
+            if st.session_state["iteration"] < len(month_list) and animate:
+                st.experimental_rerun()
+    else:
+        claim_type_line_chart(pmpm_claim_type_data, False)
+
 
 st.divider()
 st.markdown(
