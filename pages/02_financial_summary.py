@@ -201,7 +201,7 @@ def claim_type_line_chart(df, animated=True):
         for s in series
     ]
     option = {
-        "animationDuration": 10000,
+        "color": ["#06405C", "#FFCC05", "#66B1E2"],
         "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
         "title": {"text": "Paid Amount PMPM by Claim Type"},
         "tooltip": {"order": "valueDesc", "trigger": "axis"},
@@ -265,7 +265,7 @@ col1, col2 = st.columns([1, 3])
 with col1:
     comp.financial_bans(summary_stats_data, direction="vertical")
 with col2:
-    animate = True
+    animate = False
     month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
     if animate:
         while st.session_state["iteration"] < len(month_list):
