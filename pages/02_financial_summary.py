@@ -11,6 +11,15 @@ conn = util.connection(database="dev_lipsa")
 
 
 @st.cache_data
+def test_results():
+    query = """
+    select * from data_profiling.test_result
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
 def cost_summary():
     query = """
         select *
@@ -418,11 +427,19 @@ st.line_chart(data=pharm_pmpm, x="year_month", y="paid_amount_sum")
 ## --------------------------------- ##
 ## Cost Variables
 ## --------------------------------- ##
-st.markdown("## Cost Variable Quality Summary")
+st.markdown("## Quality Summary")
 st.markdown(
-    """
-Explore common descriptive statistics to gain a comprehensive understanding of the quality and distribution of a particular claim cost variable.
+"""
+Validate whether the data violates any tested assumptions.
 """
 )
+test_result_data = test_results()
+st.dataframe(test_result_data, use_container_width=True)
+st.markdown(
+"""
+Then check out the distribution of cost for the spend variables.
+"""
+)
+
 cost_summary_data = cost_summary()
 st.dataframe(cost_summary_data, use_container_width=True)
