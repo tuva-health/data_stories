@@ -38,3 +38,18 @@ def human_format(num):
     return "{}{}".format(
         "{:f}".format(num).rstrip("0").rstrip("."), ["", "K", "M", "B", "T"][magnitude]
     )
+
+def format_df(df):
+    df = df.copy(deep=True)
+    # format column values
+    for c in df:
+        if 'pct' in c:
+            df[c] = df[c].apply(lambda x: f"{round(x, 4) * 100}%")
+        elif 'pmpm' in c:
+            df[c] = df[c].apply(lambda x: f"${human_format(x)}")
+
+    # format column headers
+    df.columns = [
+        c.replace('_', ' ').title().replace('Pmpm', 'PMPM') for c in df
+    ]
+    return df
