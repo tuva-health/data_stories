@@ -286,22 +286,24 @@ start_year, end_year = st.select_slider(
 selected_range = year_values[
     year_values.index(start_year) : year_values.index(end_year) + 1
 ]
-if len(year_values) == 1:
-    year_string = year_values[0]
+
+if len(selected_range) == 1:
+    year_string = selected_range[0]
 else:
-    year_string = "{} - {}".format(year_values[0], year_values[-1])
+    year_string = "{} - {}".format(selected_range[0], selected_range[-1])
+
 st.markdown(
     f"""
     These financial summary charts offer a concise and comprehensive snapshot of your organization's financial
     performance, providing key metrics and insights at a glance.
 
     The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
-    paid amount and pmpm."""
+    paid amount and PMPM."""
 )
 st.markdown(f"### Spend Summary in {year_string}")
 summary_stats_data = summary_stats()
 summary_stats_data = summary_stats_data.loc[
-    summary_stats_data["year"] == year_values[-1]
+    summary_stats_data["year"].isin(selected_range)
 ]
 
 if "iteration" not in st.session_state:
