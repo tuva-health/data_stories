@@ -1,13 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plost
-import snowflake.connector as sn
-from dotenv import load_dotenv
-import os
 import util
 import components as comp
 
-load_dotenv()
 
 # Connect and fetch data
 conn = util.connection(database="dev_lipsa")
