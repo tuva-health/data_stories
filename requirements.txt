@@ -5,6 +5,7 @@ streamlit
 plost
 snowflake-connector-python
 boto3
-python-dotenv
+tomli
 pre-commit
 black
+streamlit-echarts

@@ -4,6 +4,8 @@ import altair as alt
 import plost
 import util
 import components as comp
+from streamlit_echarts import st_echarts
+import time
 
 conn = util.connection(database="dev_lipsa")
 
@@ -156,28 +158,79 @@ def pmpm_by_service_category_1_2():
     return data
 
 
+def claim_type_line_chart(df, animated=True):
+    if animated:
+        t = st.session_state["iteration"]
+        month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
+        anim_data = df.loc[df["year_month"] <= month_list[t], :]
+        list_data = [anim_data.columns.to_list()] + anim_data.values.tolist()
+    else:
+        list_data = [df.columns.to_list()] + df.values.tolist()
+    series = list(set(df["claim_type"]))
+    datasetWithFilters = [
+        {
+            "id": f"dataset_{s}",
+            "fromDatasetId": "dataset_raw",
+            "transform": {
+                "type": "filter",
+                "config": {
+                    "and": [
+                        {"dimension": "claim_type", "=": s},
+                    ]
+                },
+            },
+        }
+        for s in series
+    ]
+    seriesList = [
+        {
+            "type": "line",
+            "datasetId": f"dataset_{s}",
+            "showSymbol": False,
+            "name": s,
+            "labelLayout": {"moveOverlap": "shiftY"},
+            "emphasis": {"focus": "series"},
+            "encode": {
+                "x": "year_month",
+                "y": "paid_amount_pmpm",
+                "label": ["claim_type", "paid_amount_pmpm"],
+                "itemName": "year_month",
+                "tooltip": ["paid_amount_pmpm"],
+            },
+        }
+        for s in series
+    ]
+    option = {
+        "color": ["#06405C", "#FFCC05", "#66B1E2"],
+        "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
+        "title": {"text": "Paid Amount PMPM by Claim Type"},
+        "tooltip": {"order": "valueDesc", "trigger": "axis"},
+        "xAxis": {"type": "category", "nameLocation": "middle"},
+        "yAxis": {"name": "PMPM"},
+        "grid": {"right": 140},
+        "series": seriesList,
+    }
+    st_echarts(options=option, height="400px", key="chart")
+
+
 year_month_values = sorted(list(set(year_months()["year_month"])))
 year_values = sorted(list(set([x[:4] for x in year_month_values])))
+## --------------------------------- ##
+## ---                           --- ##
+## --------------------------------- ##
+pmpm_claim_type_data = pmpm_by_claim_type()
+pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
+st.markdown("## Claim Type")
+st.markdown(
+    """
+Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
+"""
+)
 
 ## --------------------------------- ##
 ## Header
 ## --------------------------------- ##
 st.markdown("# Financial Overview")
-
-summary_stats_data = summary_stats()
-summary_stats_data = summary_stats_data.loc[
-    summary_stats_data["year"] == year_values[-1]
-]
-
-comp.financial_bans(summary_stats_data)
-
-st.divider()
-st.markdown(
-    """
-Use the following time slider to cut the following charts by the year range of your interest.
-"""
-)
-
 start_year, end_year = st.select_slider(
     label="Select a range of years",
     options=year_values,
@@ -187,35 +240,50 @@ start_year, end_year = st.select_slider(
 selected_range = year_values[
     year_values.index(start_year) : year_values.index(end_year) + 1
 ]
+if len(year_values) == 1:
+    year_string = year_values[0]
+else:
+    year_string = "{} - {}".format(year_values[0], year_values[-1])
+st.markdown(
+    f"""
+    These financial summary charts offer a concise and comprehensive snapshot of your organization's financial
+    performance, providing key metrics and insights at a glance.
 
-## --------------------------------- ##
-## ---                           --- ##
-## --------------------------------- ##
-pmpm_claim_type_data = pmpm_by_claim_type()
-pmpm_claim_type_data = pmpm_claim_type_data.loc[
-    pmpm_claim_type_data["year_month"].str[:4].isin(selected_range)
-]
-pmpm_claim_type_data = (
-    pmpm_claim_type_data.groupby("claim_type", as_index=False)[
-        ["paid_amount_sum", "member_month_count"]
-    ]
-    .sum()
-    .assign(paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"])
+    The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
+    paid amount and pmpm."""
 )
+st.markdown(f"### Spend Summary in {year_string}")
+summary_stats_data = summary_stats()
+summary_stats_data = summary_stats_data.loc[
+    summary_stats_data["year"] == year_values[-1]
+]
 
-st.markdown("## Claim Type")
+if "iteration" not in st.session_state:
+    st.session_state["iteration"] = 0
+
+col1, col2 = st.columns([1, 3])
+with col1:
+    comp.financial_bans(summary_stats_data, direction="vertical")
+with col2:
+    animate = False
+    month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
+    if animate:
+        while st.session_state["iteration"] < len(month_list):
+            claim_type_line_chart(pmpm_claim_type_data, True)
+            time.sleep(0.05)
+            st.session_state["iteration"] += 1
+
+            if st.session_state["iteration"] < len(month_list) and animate:
+                st.experimental_rerun()
+    else:
+        claim_type_line_chart(pmpm_claim_type_data, False)
+
+
+st.divider()
 st.markdown(
     """
-Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
+Use the following time slider to cut the following charts by the year range of your interest.
 """
-)
-plost.bar_chart(
-    data=pmpm_claim_type_data,
-    bar="claim_type",
-    value="paid_amount_pmpm",
-    direction="horizontal",
-    legend="top",
-    height=200,
 )
 
 

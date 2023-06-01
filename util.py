@@ -1,18 +1,18 @@
 import snowflake.connector as sn
 import pandas as pd
-from dotenv import load_dotenv
-import os
+import tomli
 
-load_dotenv()
+with open(".streamlit/secrets.toml", mode="rb") as fp:
+    config = tomli.load(fp)
 
 
 def connection(database=None):
     return sn.connect(
-        user=os.getenv("SNOWFLAKE_USER"),
-        password=os.getenv("SNOWFLAKE_PASSWORD"),
-        account=os.getenv("SNOWFLAKE_ACCOUNT"),
-        warehouse=os.getenv("SNOWFLAKE_WH"),
-        role=os.getenv("SNOWFLAKE_ROLE"),
+        user=config["SNOWFLAKE_USER"],
+        password=config["SNOWFLAKE_PASSWORD"],
+        account=config["SNOWFLAKE_ACCOUNT"],
+        warehouse=config["SNOWFLAKE_WH"],
+        role=config["SNOWFLAKE_ROLE"],
         database=database or "tuva_project_demo",
     )
 

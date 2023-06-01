@@ -10,14 +10,14 @@ Once you are within you desired working python env (or conda, venv), run the fol
 ```pip install -r requirements.txt```
 
 ## Configuration
-Currently, this app uses a `.env` file to store secrets and sensitive information needed for runtime. Create a `.env`
+Currently, this app uses a `secrets.toml` file  in the `.streamlit/` folder to store secrets and sensitive information needed for runtime. Create a `.env`
 file in the repo root folder and add the following key/value pairs to the file.
 ```
-SNOWFLAKE_USER = <username goes here>
-SNOWFLAKE_PASSWORD = <password goes here>
-SNOWFLAKE_ACCOUNT = <snowflake account url>
-SNOWFLAKE_WH = <name of desired warehouse to use>
-SNOWFLAKE_ROLE = <name of desired role to use>
+SNOWFLAKE_USER = "<username goes here>"
+SNOWFLAKE_PASSWORD = "<password goes here>"
+SNOWFLAKE_ACCOUNT = "<snowflake account url>"
+SNOWFLAKE_WH = "<name of desired warehouse to use>"
+SNOWFLAKE_ROLE = "<name of desired role to use>"
 ```
 
 ## App Start Up
