@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import altair as alt
 import plost
 import util
@@ -446,7 +445,7 @@ use_case_data = use_case()
 st.dataframe(use_case_data, use_container_width=True)
 
 st.markdown(
-"""
+    """
 You can also review specific test results in the following table that lists
 all the checks that failed.
 """
@@ -455,7 +454,7 @@ test_result_data = test_results()
 st.dataframe(test_result_data, use_container_width=True)
 
 st.markdown(
-"""
+    """
 Then check out the distribution of cost for the spend variables.
 """
 )
