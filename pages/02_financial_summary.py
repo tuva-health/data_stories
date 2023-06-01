@@ -11,6 +11,24 @@ conn = util.connection(database="dev_lipsa")
 
 
 @st.cache_data
+def test_results():
+    query = """
+    select * from data_profiling.test_result
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
+def use_case():
+    query = """
+    select * from data_profiling.use_case
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
 def cost_summary():
     query = """
         select *
@@ -418,10 +436,27 @@ st.line_chart(data=pharm_pmpm, x="year_month", y="paid_amount_sum")
 ## --------------------------------- ##
 ## Cost Variables
 ## --------------------------------- ##
-st.markdown("## Cost Variable Quality Summary")
+st.markdown("## Quality Summary")
+"""
+This table details all the use cases for the Tuva Project and relevant claim rows that
+failed our tests. It is recommended that you look into these test results to
+improve the quality of your data and thus, trust in the analysis above.
+"""
+use_case_data = use_case()
+st.dataframe(use_case_data, use_container_width=True)
+
 st.markdown(
-    """
-Explore common descriptive statistics to gain a comprehensive understanding of the quality and distribution of a particular claim cost variable.
+"""
+You can also review specific test results in the following table that lists
+all the checks that failed.
+"""
+)
+test_result_data = test_results()
+st.dataframe(test_result_data, use_container_width=True)
+
+st.markdown(
+"""
+Then check out the distribution of cost for the spend variables.
 """
 )
 cost_summary_data = cost_summary()
