@@ -32,7 +32,27 @@ def summary_stats():
            from pmpm._int_member_month_count
            group by 1
         )
-        select *
+        select
+            year
+            , lag(year) over(order by year) as prior_year
+            , medical_paid_amount as current_period_medical_paid
+            , lag(medical_paid_amount) over(order by year) as prior_period_medical_paid
+            , div0null(
+                 medical_paid_amount - lag(medical_paid_amount) over(order by year),
+                 lag(medical_paid_amount) over(order by year)
+              ) as pct_change_medical_paid
+            , pharmacy_paid_amount as current_period_pharmacy_paid
+            , lag(pharmacy_paid_amount) over(order by year) as prior_period_pharmacy_paid
+            , div0null(
+                 pharmacy_paid_amount - lag(pharmacy_paid_amount) over(order by year),
+                 lag(pharmacy_paid_amount) over(order by year)
+              ) as pct_change_pharmacy_paid
+            , member_month_count as current_period_member_months
+            , lag(member_month_count) over(order by year) as prior_period_member_months
+            , div0null(
+                 member_month_count - lag(member_month_count) over(order by year),
+                 lag(member_month_count) over(order by year)
+            ) as pct_change_member_months
         from medical
         join pharmacy using(year)
         join elig using(year)

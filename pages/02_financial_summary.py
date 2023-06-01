@@ -5,6 +5,7 @@ import util
 import components as comp
 from streamlit_echarts import st_echarts
 import time
+import pandas as pd
 
 conn = util.connection(database="dev_lipsa")
 
@@ -78,7 +79,35 @@ def summary_stats():
            from pmpm._int_member_month_count
            group by 1
         )
-        select *
+        select
+            year
+            , lag(year) over(order by year) as prior_year
+            , medical_paid_amount + pharmacy_paid_amount as current_period_total_paid
+            , lag(medical_paid_amount + pharmacy_paid_amount)
+              over(order by year) as prior_period_total_paid
+            , div0null(
+                 medical_paid_amount + pharmacy_paid_amount
+                 - lag(medical_paid_amount + pharmacy_paid_amount) over(order by year),
+                 lag(medical_paid_amount + pharmacy_paid_amount) over(order by year)
+              ) as pct_change_total_paid
+            , medical_paid_amount as current_period_medical_paid
+            , lag(medical_paid_amount) over(order by year) as prior_period_medical_paid
+            , div0null(
+                 medical_paid_amount - lag(medical_paid_amount) over(order by year),
+                 lag(medical_paid_amount) over(order by year)
+              ) as pct_change_medical_paid
+            , pharmacy_paid_amount as current_period_pharmacy_paid
+            , lag(pharmacy_paid_amount) over(order by year) as prior_period_pharmacy_paid
+            , div0null(
+                 pharmacy_paid_amount - lag(pharmacy_paid_amount) over(order by year),
+                 lag(pharmacy_paid_amount) over(order by year)
+              ) as pct_change_pharmacy_paid
+            , member_month_count as current_period_member_months
+            , lag(member_month_count) over(order by year) as prior_period_member_months
+            , div0null(
+                 member_month_count - lag(member_month_count) over(order by year),
+                 lag(member_month_count) over(order by year)
+            ) as pct_change_member_months
         from medical
         join pharmacy using(year)
         join elig using(year)
@@ -296,12 +325,56 @@ with col2:
         claim_type_line_chart(pmpm_claim_type_data, False)
 
 
-st.divider()
-st.markdown(
-    """
-Use the following time slider to cut the following charts by the year range of your interest.
-"""
-)
+## --------------------------------- ##
+## Spend Change
+## --------------------------------- ##
+
+for ctype in ['medical', 'pharmacy', 'total']:
+    summary_stats_data[f'current_period_{ctype}_pmpm'] = (
+        summary_stats_data[f'current_period_{ctype}_paid'].astype(float).div(
+            summary_stats_data['current_period_member_months'].astype(float), fill_value=0)
+    )
+    summary_stats_data[f'prior_period_{ctype}_pmpm'] = (
+        summary_stats_data[f'prior_period_{ctype}_paid'].astype(float).div(
+            summary_stats_data['prior_period_member_months'].astype(float), fill_value=0)
+    )
+    summary_stats_data[f'pct_change_{ctype}_pmpm'] = (
+        (summary_stats_data[f'current_period_{ctype}_pmpm'] - summary_stats_data[f'prior_period_{ctype}_pmpm'])
+        .div(summary_stats_data[f'prior_period_{ctype}_pmpm'], fill_value=0)
+    )
+
+
+# CSS to inject contained in a string
+hide_table_row_index = """
+            <style>
+            thead tr th:first-child {display:none}
+            tbody th {display:none}
+            </style>
+            """
+
+# Inject CSS with Markdown
+st.markdown(hide_table_row_index, unsafe_allow_html=True)
+st.markdown("""
+   Get a better sense of the change over time using this table.
+""")
+test = pd.concat([
+    summary_stats_data.assign(
+        category = lambda x: ctype.title()
+    )[[
+        'year',
+        'category',
+        f'prior_period_{ctype}_pmpm',
+        f'current_period_{ctype}_pmpm',
+        f'pct_change_{ctype}_pmpm'
+    ]].rename(columns={
+        f'current_period_{ctype}_pmpm': 'current_period_pmpm',
+        f'prior_period_{ctype}_pmpm': 'prior_period_pmpm',
+        f'pct_change_{ctype}_pmpm': 'pct_change_pmpm'
+    })
+    for ctype in ['medical', 'pharmacy', 'total']
+])
+test = test.loc[test.year != year_values[0]]
+st.table(util.format_df(test))
 
 
 ## --------------------------------- ##

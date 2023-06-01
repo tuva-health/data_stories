@@ -14,9 +14,9 @@ def financial_bans(summary_stats_data, direction="horizontal"):
         summary_stats_data["year"].isin(year_values)
     ]
 
-    med_spend = summary_stats_data["medical_paid_amount"].sum()
-    pharm_spend = summary_stats_data["pharmacy_paid_amount"].sum()
-    member_mon_count = summary_stats_data["member_month_count"].sum()
+    med_spend = summary_stats_data["current_period_medical_paid"].sum()
+    pharm_spend = summary_stats_data["current_period_pharmacy_paid"].sum()
+    member_mon_count = summary_stats_data["current_period_member_months"].sum()
     avg_pmpm = med_spend / member_mon_count
     if direction == "vertical":
         st.metric("Medical Spend", util.human_format(med_spend))
