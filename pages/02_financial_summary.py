@@ -3,7 +3,6 @@ import altair as alt
 import plost
 import util
 import components as comp
-from streamlit_echarts import st_echarts
 import time
 import pandas as pd
 
@@ -204,61 +203,6 @@ def pmpm_by_service_category_1_2():
     return data
 
 
-def claim_type_line_chart(df, animated=True):
-    if animated:
-        t = st.session_state["iteration"]
-        month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
-        anim_data = df.loc[df["year_month"] <= month_list[t], :]
-        list_data = [anim_data.columns.to_list()] + anim_data.values.tolist()
-    else:
-        list_data = [df.columns.to_list()] + df.values.tolist()
-    series = list(set(df["claim_type"]))
-    datasetWithFilters = [
-        {
-            "id": f"dataset_{s}",
-            "fromDatasetId": "dataset_raw",
-            "transform": {
-                "type": "filter",
-                "config": {
-                    "and": [
-                        {"dimension": "claim_type", "=": s},
-                    ]
-                },
-            },
-        }
-        for s in series
-    ]
-    seriesList = [
-        {
-            "type": "line",
-            "datasetId": f"dataset_{s}",
-            "showSymbol": False,
-            "name": s,
-            "labelLayout": {"moveOverlap": "shiftY"},
-            "emphasis": {"focus": "series"},
-            "encode": {
-                "x": "year_month",
-                "y": "paid_amount_pmpm",
-                "label": ["claim_type", "paid_amount_pmpm"],
-                "itemName": "year_month",
-                "tooltip": ["paid_amount_pmpm"],
-            },
-        }
-        for s in series
-    ]
-    option = {
-        "color": ["#06405C", "#FFCC05", "#66B1E2"],
-        "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
-        "title": {"text": "Paid Amount PMPM by Claim Type"},
-        "tooltip": {"order": "valueDesc", "trigger": "axis"},
-        "xAxis": {"type": "category", "nameLocation": "middle"},
-        "yAxis": {"name": "PMPM"},
-        "grid": {"right": 140},
-        "series": seriesList,
-    }
-    st_echarts(options=option, height="400px", key="chart")
-
-
 year_month_values = sorted(list(set(year_months()["year_month"])))
 year_values = sorted(list(set([x[:4] for x in year_month_values])))
 ## --------------------------------- ##
@@ -317,33 +261,40 @@ with col2:
     month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
     if animate:
         while st.session_state["iteration"] < len(month_list):
-            claim_type_line_chart(pmpm_claim_type_data, True)
+            comp.claim_type_line_chart(pmpm_claim_type_data, True)
             time.sleep(0.05)
             st.session_state["iteration"] += 1
 
             if st.session_state["iteration"] < len(month_list) and animate:
                 st.experimental_rerun()
     else:
-        claim_type_line_chart(pmpm_claim_type_data, False)
+        comp.claim_type_line_chart(pmpm_claim_type_data, False)
 
 
 ## --------------------------------- ##
 ## Spend Change
 ## --------------------------------- ##
 
-for ctype in ['medical', 'pharmacy', 'total']:
-    summary_stats_data[f'current_period_{ctype}_pmpm'] = (
-        summary_stats_data[f'current_period_{ctype}_paid'].astype(float).div(
-            summary_stats_data['current_period_member_months'].astype(float), fill_value=0)
+for ctype in ["medical", "pharmacy", "total"]:
+    summary_stats_data[f"current_period_{ctype}_pmpm"] = (
+        summary_stats_data[f"current_period_{ctype}_paid"]
+        .astype(float)
+        .div(
+            summary_stats_data["current_period_member_months"].astype(float),
+            fill_value=0,
+        )
     )
-    summary_stats_data[f'prior_period_{ctype}_pmpm'] = (
-        summary_stats_data[f'prior_period_{ctype}_paid'].astype(float).div(
-            summary_stats_data['prior_period_member_months'].astype(float), fill_value=0)
+    summary_stats_data[f"prior_period_{ctype}_pmpm"] = (
+        summary_stats_data[f"prior_period_{ctype}_paid"]
+        .astype(float)
+        .div(
+            summary_stats_data["prior_period_member_months"].astype(float), fill_value=0
+        )
     )
-    summary_stats_data[f'pct_change_{ctype}_pmpm'] = (
-        (summary_stats_data[f'current_period_{ctype}_pmpm'] - summary_stats_data[f'prior_period_{ctype}_pmpm'])
-        .div(summary_stats_data[f'prior_period_{ctype}_pmpm'], fill_value=0)
-    )
+    summary_stats_data[f"pct_change_{ctype}_pmpm"] = (
+        summary_stats_data[f"current_period_{ctype}_pmpm"]
+        - summary_stats_data[f"prior_period_{ctype}_pmpm"]
+    ).div(summary_stats_data[f"prior_period_{ctype}_pmpm"], fill_value=0)
 
 
 # CSS to inject contained in a string
@@ -356,28 +307,35 @@ hide_table_row_index = """
 
 # Inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
-st.markdown("""
+st.markdown(
+    """
    Get a better sense of the change over time using this table.
-""")
-test = pd.concat([
-    summary_stats_data.assign(
-        category = lambda x: ctype.title()
-    )[[
-        'year',
-        'category',
-        f'prior_period_{ctype}_pmpm',
-        f'current_period_{ctype}_pmpm',
-        f'pct_change_{ctype}_pmpm'
-    ]].rename(columns={
-        f'current_period_{ctype}_pmpm': 'current_period_pmpm',
-        f'prior_period_{ctype}_pmpm': 'prior_period_pmpm',
-        f'pct_change_{ctype}_pmpm': 'pct_change_pmpm'
-    })
-    for ctype in ['medical', 'pharmacy', 'total']
-])
+"""
+)
+test = pd.concat(
+    [
+        summary_stats_data.assign(category=lambda x: ctype.title())[
+            [
+                "year",
+                "category",
+                f"prior_period_{ctype}_pmpm",
+                f"current_period_{ctype}_pmpm",
+                f"pct_change_{ctype}_pmpm",
+            ]
+        ].rename(
+            columns={
+                f"current_period_{ctype}_pmpm": "current_period_pmpm",
+                f"prior_period_{ctype}_pmpm": "prior_period_pmpm",
+                f"pct_change_{ctype}_pmpm": "pct_change_pmpm",
+            }
+        )
+        for ctype in ["medical", "pharmacy", "total"]
+    ]
+)
 test = test.loc[test.year != year_values[0]]
 st.table(util.format_df(test))
 
+comp.pop_grouped_bar(test)
 
 ## --------------------------------- ##
 ## Service Category 1
