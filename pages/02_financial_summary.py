@@ -71,12 +71,6 @@ year_values = sorted(list(set([x[:4] for x in year_month_values])))
 ## --------------------------------- ##
 pmpm_claim_type_data = data.pmpm_by_claim_type()
 pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
-st.markdown("## Claim Type")
-st.markdown(
-    """
-Explore the per member per month costs across different claim types to gain insights into healthcare expenditure patterns. Inpatient spend will tend to be much higher than professional spend. Dig deeper to find out what is hidden in these costs.
-"""
-)
 
 ## --------------------------------- ##
 ## Header
@@ -229,29 +223,29 @@ service_1_chart = (
 
 st.altair_chart(service_1_chart, use_container_width=True)
 
-chart_vals = ["Ancillary", "Inpatient", "Office Visit", "Other", "Outpatient"]
-grouped_service = service_1_data.groupby(by="service_category_1", as_index=False)[
-    "paid_amount_sum"
-].sum()
-total_member_months = (
-    service_1_data[["year_month", "member_month_count"]]
-    .drop_duplicates()["member_month_count"]
-    .sum()
-)
-grouped_service["paid_amount_pmpm"] = (
-    grouped_service["paid_amount_sum"] / total_member_months
-)
-grouped_service.set_index("service_category_1", inplace=True)
-grouped_service = grouped_service.transpose()
-grouped_service["Metric"] = "Average PMPM"
-plost.bar_chart(
-    data=grouped_service,
-    bar="Metric",
-    value=chart_vals,
-    stack="normalize",
-    direction="horizontal",
-    height=200,
-)
+# chart_vals = ["Ancillary", "Inpatient", "Office Visit", "Other", "Outpatient"]
+# grouped_service = service_1_data.groupby(by="service_category_1", as_index=False)[
+#     "paid_amount_sum"
+# ].sum()
+# total_member_months = (
+#     service_1_data[["year_month", "member_month_count"]]
+#     .drop_duplicates()["member_month_count"]
+#     .sum()
+# )
+# grouped_service["paid_amount_pmpm"] = (
+#     grouped_service["paid_amount_sum"] / total_member_months
+# )
+# grouped_service.set_index("service_category_1", inplace=True)
+# grouped_service = grouped_service.transpose()
+# grouped_service["Metric"] = "Average PMPM"
+# plost.bar_chart(
+#     data=grouped_service,
+#     bar="Metric",
+#     value=chart_vals,
+#     stack="normalize",
+#     direction="horizontal",
+#     height=200,
+# )
 
 ## --------------------------------- ##
 ## Service Category 2
