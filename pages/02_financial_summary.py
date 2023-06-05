@@ -3,212 +3,19 @@ import altair as alt
 import plost
 import util
 import components as comp
+import data
+from streamlit_echarts import st_echarts
 import time
 import pandas as pd
 
-conn = util.connection(database="dev_lipsa")
 
+year_month_values = sorted(list(set(data.year_months()["year_month"])))
 
-@st.cache_data
-def test_results():
-    query = """
-    select * from data_profiling.test_result
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def use_case():
-    query = """
-    select * from data_profiling.use_case
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def cost_summary():
-    query = """
-        select *
-        from dbt_lipsa.cost_summary
-        order by 1, 2, 3
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def year_months():
-    query = """
-        select distinct
-           year(claim_end_date)::text || '-' ||
-             lpad(month(claim_end_date)::text, 2, '0')
-             as year_month
-           , sum(paid_amount)
-        from core.medical_claim
-        group by 1
-        having sum(paid_amount) > 10
-        order by 1
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def summary_stats():
-    query = """
-        with medical as (
-           select distinct
-               year(claim_end_date)::text year
-               , sum(paid_amount) as medical_paid_amount
-           from core.medical_claim
-           group by 1
-        )
-        , pharmacy as (
-           select
-               year(dispensing_date)::text year
-               , sum(paid_amount) as pharmacy_paid_amount
-           from core.pharmacy_claim
-           group by 1
-        ), elig as (
-           select
-               substr(year_month, 0, 4) as year
-               , sum(member_month_count) as member_month_count
-           from pmpm._int_member_month_count
-           group by 1
-        )
-        select
-            year
-            , lag(year) over(order by year) as prior_year
-            , medical_paid_amount + pharmacy_paid_amount as current_period_total_paid
-            , lag(medical_paid_amount + pharmacy_paid_amount)
-              over(order by year) as prior_period_total_paid
-            , div0null(
-                 medical_paid_amount + pharmacy_paid_amount
-                 - lag(medical_paid_amount + pharmacy_paid_amount) over(order by year),
-                 lag(medical_paid_amount + pharmacy_paid_amount) over(order by year)
-              ) as pct_change_total_paid
-            , medical_paid_amount as current_period_medical_paid
-            , lag(medical_paid_amount) over(order by year) as prior_period_medical_paid
-            , div0null(
-                 medical_paid_amount - lag(medical_paid_amount) over(order by year),
-                 lag(medical_paid_amount) over(order by year)
-              ) as pct_change_medical_paid
-            , pharmacy_paid_amount as current_period_pharmacy_paid
-            , lag(pharmacy_paid_amount) over(order by year) as prior_period_pharmacy_paid
-            , div0null(
-                 pharmacy_paid_amount - lag(pharmacy_paid_amount) over(order by year),
-                 lag(pharmacy_paid_amount) over(order by year)
-              ) as pct_change_pharmacy_paid
-            , member_month_count as current_period_member_months
-            , lag(member_month_count) over(order by year) as prior_period_member_months
-            , div0null(
-                 member_month_count - lag(member_month_count) over(order by year),
-                 lag(member_month_count) over(order by year)
-            ) as pct_change_member_months
-        from medical
-        join pharmacy using(year)
-        join elig using(year)
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def pmpm_by_claim_type():
-    query = """
-        with spend_summary as (
-            select
-               year(claim_end_date)::text || '-' ||
-                 lpad(month(claim_end_date)::text, 2, '0')
-                 as year_month
-               , claim_type
-               , sum(paid_amount) as paid_amount_sum
-            from core.medical_claim
-            group by 1, 2
-            having sum(paid_amount) > 0
-            order by 1, 2 desc
-        ), pharmacy_summary as (
-           select
-               year(dispensing_date)::text || '-' ||
-                 lpad(month(dispensing_date)::text, 2, '0')
-                 as year_month
-               , 'pharmacy' as claim_type
-               , sum(paid_amount) as paid_amount_sum
-           from core.pharmacy_claim
-           group by 1
-        ), together as (
-           select * from spend_summary union all
-           select * from pharmacy_summary
-        )
-        select
-           *
-           , paid_amount_sum / member_month_count as paid_amount_pmpm
-        from together
-        join pmpm._int_member_month_count using(year_month)
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def pmpm_by_service_category_1():
-    query = """
-        with spend_summary as (
-            select
-               year(claim_end_date)::text || '-' ||
-                 lpad(month(claim_end_date)::text, 2, '0')
-                 as year_month
-               , service_category_1
-               , sum(paid_amount) as paid_amount_sum
-            from core.medical_claim
-            group by 1, 2
-            having sum(paid_amount) > 0
-            order by 1, 2 desc
-        )
-        select
-           *
-           , paid_amount_sum / member_month_count as paid_amount_pmpm
-        from spend_summary
-        join pmpm._int_member_month_count using(year_month)
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def pmpm_by_service_category_1_2():
-    query = """
-        with spend_summary as (
-            select
-               year(claim_end_date)::text || '-' ||
-                 lpad(month(claim_end_date)::text, 2, '0')
-                 as year_month
-               , service_category_1
-               , service_category_2
-               , sum(paid_amount) as paid_amount_sum
-            from core.medical_claim
-            group by 1, 2, 3
-            having sum(paid_amount) > 0
-            order by 1, 2, 3 desc
-        )
-        select
-           *
-           , paid_amount_sum / member_month_count as paid_amount_pmpm
-        from spend_summary
-        join pmpm._int_member_month_count using(year_month)
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-year_month_values = sorted(list(set(year_months()["year_month"])))
 year_values = sorted(list(set([x[:4] for x in year_month_values])))
 ## --------------------------------- ##
 ## ---                           --- ##
 ## --------------------------------- ##
-pmpm_claim_type_data = pmpm_by_claim_type()
+pmpm_claim_type_data = data.pmpm_by_claim_type()
 pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
 st.markdown("## Claim Type")
 st.markdown(
@@ -245,7 +52,7 @@ st.markdown(
     paid amount and PMPM."""
 )
 st.markdown(f"### Spend Summary in {year_string}")
-summary_stats_data = summary_stats()
+summary_stats_data = data.summary_stats()
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
 ]
@@ -350,7 +157,7 @@ seems to **spike in 2018**, driven by a large increase in outpatient spend 1 mon
 spend the next.
 """
 )
-service_1_data = pmpm_by_service_category_1()
+service_1_data = data.pmpm_by_service_category_1()
 service_1_data = service_1_data.loc[
     service_1_data["year_month"].str[:4].isin(selected_range)
 ]
@@ -417,7 +224,7 @@ with col3:
         label_visibility="collapsed",
     )
 
-service_2_data = pmpm_by_service_category_1_2()
+service_2_data = data.pmpm_by_service_category_1_2()
 service_2_data = (
     service_2_data.loc[
         service_2_data["year_month"].str[:4].isin(selected_range)
@@ -460,7 +267,7 @@ st.markdown(
 A look at pharmacy spend over time during the claims period selected.
 """
 )
-pharm_pmpm = pmpm_by_claim_type()
+pharm_pmpm = data.pmpm_by_claim_type()
 pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["claim_type"] == "pharmacy", :]
 pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["year_month"].str[:4].isin(selected_range)]
 st.line_chart(data=pharm_pmpm, x="year_month", y="paid_amount_sum")
@@ -474,7 +281,7 @@ This table details all the use cases for the Tuva Project and relevant claim row
 failed our tests. It is recommended that you look into these test results to
 improve the quality of your data and thus, trust in the analysis above.
 """
-use_case_data = use_case()
+use_case_data = data.use_case()
 st.dataframe(use_case_data, use_container_width=True)
 
 st.markdown(
@@ -483,7 +290,7 @@ You can also review specific test results in the following table that lists
 all the checks that failed.
 """
 )
-test_result_data = test_results()
+test_result_data = data.test_results()
 st.dataframe(test_result_data, use_container_width=True)
 
 st.markdown(
@@ -491,5 +298,5 @@ st.markdown(
 Then check out the distribution of cost for the spend variables.
 """
 )
-cost_summary_data = cost_summary()
+cost_summary_data = data.cost_summary()
 st.dataframe(cost_summary_data, use_container_width=True)
