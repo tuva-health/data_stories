@@ -1,132 +1,25 @@
 import streamlit as st
-import pandas as pd
 import plost
-import util
 import components as comp
+import data
 
-
-# Connect and fetch data
-conn = util.connection(database="dev_lipsa")
-
-
-@st.cache_data
-def summary_stats():
-    query = """
-        with medical as (
-           select distinct
-               year(claim_end_date)::text year
-               , sum(paid_amount) as medical_paid_amount
-           from core.medical_claim
-           group by 1
-        )
-        , pharmacy as (
-           select
-               year(dispensing_date)::text year
-               , sum(paid_amount) as pharmacy_paid_amount
-           from core.pharmacy_claim
-           group by 1
-        ), elig as (
-           select
-               substr(year_month, 0, 4) as year
-               , sum(member_month_count) as member_month_count
-           from pmpm._int_member_month_count
-           group by 1
-        )
-        select
-            year
-            , lag(year) over(order by year) as prior_year
-            , medical_paid_amount as current_period_medical_paid
-            , lag(medical_paid_amount) over(order by year) as prior_period_medical_paid
-            , div0null(
-                 medical_paid_amount - lag(medical_paid_amount) over(order by year),
-                 lag(medical_paid_amount) over(order by year)
-              ) as pct_change_medical_paid
-            , pharmacy_paid_amount as current_period_pharmacy_paid
-            , lag(pharmacy_paid_amount) over(order by year) as prior_period_pharmacy_paid
-            , div0null(
-                 pharmacy_paid_amount - lag(pharmacy_paid_amount) over(order by year),
-                 lag(pharmacy_paid_amount) over(order by year)
-              ) as pct_change_pharmacy_paid
-            , member_month_count as current_period_member_months
-            , lag(member_month_count) over(order by year) as prior_period_member_months
-            , div0null(
-                 member_month_count - lag(member_month_count) over(order by year),
-                 lag(member_month_count) over(order by year)
-            ) as pct_change_member_months
-        from medical
-        join pharmacy using(year)
-        join elig using(year)
-    """
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def pmpm_data():
-    query = """SELECT PT.*, PB.MEMBER_COUNT, PHARMACY_SPEND FROM PMPM.PMPM_TRENDS PT
-              LEFT JOIN (SELECT CONCAT(LEFT(YEAR_MONTH, 4), '-', RIGHT(YEAR_MONTH, 2)) AS YEAR_MONTH,
-                         COUNT(*) AS MEMBER_COUNT,
-                         SUM(PHARMACY_PAID) AS PHARMACY_SPEND
-                         FROM PMPM.PMPM_BUILDER
-                         GROUP BY YEAR_MONTH) AS PB
-              ON PT.YEAR_MONTH = PB.YEAR_MONTH;"""
-
-    data = util.safe_to_pandas(conn, query)
-    data["year_month"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.date
-    data["year"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.year
-    data["pharmacy_spend"] = data["pharmacy_spend"].astype(float)
-
-    return data
-
-
-@st.cache_data
-def gender_data():
-    query = """SELECT GENDER, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def race_data():
-    query = """SELECT RACE, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-@st.cache_data
-def age_data():
-    query = """SELECT CASE
-                        WHEN div0(current_date() - BIRTH_DATE, 365) < 49 THEN '34-48'
-                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 49 AND div0(current_date() - BIRTH_DATE, 365) < 65 THEN '49-64'
-                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 65 AND div0(current_date() - BIRTH_DATE, 365) < 79 THEN '65-78'
-                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 79 AND div0(current_date() - BIRTH_DATE, 365) < 99 THEN '79-98'
-                        WHEN div0(current_date() - BIRTH_DATE, 365) >= 99 THEN '99+' END
-                AS AGE_GROUP,
-                COUNT(*) AS COUNT
-                FROM CORE.PATIENT
-                GROUP BY 1
-                ORDER BY 1;"""
-    data = util.safe_to_pandas(conn, query)
-    return data
-
-
-cost_data = summary_stats()
-data = pmpm_data()
-demo_gender = gender_data()
-demo_race = race_data()
-demo_age = age_data()
+cost_data = data.summary_stats()
+pmpm_data = data.pmpm_data()
+demo_gender = data.gender_data()
+demo_race = data.race_data()
+demo_age = data.age_data()
 
 st.markdown("# Summary of Claims")
 start_year, end_year = st.select_slider(
     "Select date range for claims summary",
-    options=sorted(list(set(data["year"]))),
-    value=(data["year"].min(), data["year"].max()),
+    options=sorted(list(set(pmpm_data["year"]))),
+    value=(pmpm_data["year"].min(), pmpm_data["year"].max()),
 )
 filtered_cost_data = cost_data.loc[
     (cost_data["year"] >= str(start_year)) & (cost_data["year"] <= str(end_year)), :
 ]
-filtered_pmpm_data = data.loc[
-    (data["year"] >= start_year) & (data["year"] <= end_year), :
+filtered_pmpm_data = pmpm_data.loc[
+    (pmpm_data["year"] >= start_year) & (pmpm_data["year"] <= end_year), :
 ]
 
 
@@ -140,7 +33,7 @@ comp.financial_bans(filtered_cost_data)
 
 st.divider()
 y_axis = st.selectbox(
-    "Select Metric for Trend Line", [x for x in data.columns if "year" not in x]
+    "Select Metric for Trend Line", [x for x in pmpm_data.columns if "year" not in x]
 )
 
 if y_axis:
