@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_echarts import st_echarts
 import util
 
 
@@ -49,3 +50,74 @@ def year_slider(year_values):
         year_values.index(start_year) : year_values.index(end_year) + 1
     ]
     return selected_range
+
+
+def claim_type_line_chart(df, animated=True):
+    if animated:
+        t = st.session_state["iteration"]
+        month_list = sorted(list(set(df["year_month"])))
+        anim_data = df.loc[df["year_month"] <= month_list[t], :]
+        list_data = [anim_data.columns.to_list()] + anim_data.values.tolist()
+    else:
+        list_data = [df.columns.to_list()] + df.values.tolist()
+    series = list(set(df["claim_type"]))
+    datasetWithFilters = [
+        {
+            "id": f"dataset_{s}",
+            "fromDatasetId": "dataset_raw",
+            "transform": {
+                "type": "filter",
+                "config": {
+                    "and": [
+                        {"dimension": "claim_type", "=": s},
+                    ]
+                },
+            },
+        }
+        for s in series
+    ]
+    seriesList = [
+        {
+            "type": "line",
+            "datasetId": f"dataset_{s}",
+            "showSymbol": False,
+            "name": s,
+            "labelLayout": {"moveOverlap": "shiftY"},
+            "emphasis": {"focus": "series"},
+            "encode": {
+                "x": "year_month",
+                "y": "paid_amount_pmpm",
+                "label": ["claim_type", "paid_amount_pmpm"],
+                "itemName": "year_month",
+                "tooltip": ["paid_amount_pmpm"],
+            },
+        }
+        for s in series
+    ]
+    option = {
+        "color": ["#06405C", "#FFCC05", "#66B1E2"],
+        "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
+        "title": {"text": "Paid Amount PMPM by Claim Type"},
+        "tooltip": {"order": "valueDesc", "trigger": "axis"},
+        "xAxis": {"type": "category", "nameLocation": "middle"},
+        "yAxis": {"name": "PMPM"},
+        "grid": {"right": 140},
+        "series": seriesList,
+    }
+    st_echarts(options=option, height="400px", key="chart")
+
+
+def pop_grouped_bar(df):
+    pivoted_df = df.pivot(
+        index="category", columns="year", values="current_period_pmpm"
+    ).reset_index()
+    list_data = [pivoted_df.columns.to_list()] + pivoted_df.values.tolist()
+    option = {
+        "legend": {},
+        "tooltip": {},
+        "dataset": {"source": list_data},
+        "xAxis": {"type": "category", "data": sorted(list(set(df["category"])))},
+        "yAxis": {"type": "value"},
+        "series": [{"type": "bar"} for x in list(set(df["year"]))],
+    }
+    st_echarts(options=option)
