@@ -1,6 +1,15 @@
 import streamlit as st
 from streamlit_echarts import st_echarts
 import util
+import toolz as to
+from palette import PALETTE
+
+from streamlit_extras.metric_cards import style_metric_cards
+
+style_args = {
+    "border_size_px": 0,
+    "border_left_color": PALETTE["4-cerulean"]
+}
 
 
 def financial_bans(summary_stats_data, direction="horizontal"):
@@ -24,12 +33,14 @@ def financial_bans(summary_stats_data, direction="horizontal"):
         st.metric("Pharmacy Spend", util.human_format(pharm_spend))
         st.metric("Member Months", util.human_format(member_mon_count))
         st.metric("Average PMPM", util.human_format(avg_pmpm))
+        style_metric_cards(**style_args)
     else:
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Medical Spend", util.human_format(med_spend))
         col2.metric("Pharmacy Spend", util.human_format(pharm_spend))
         col3.metric("Member Months", util.human_format(member_mon_count))
         col4.metric("Average PMPM", util.human_format(avg_pmpm))
+        style_metric_cards(**style_args)
 
 
 def year_slider(year_values):
