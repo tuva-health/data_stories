@@ -5,6 +5,7 @@ import util
 import components as comp
 import data
 from streamlit_echarts import st_echarts
+from palette import ORDINAL
 import time
 import pandas as pd
 
@@ -87,7 +88,7 @@ with col2:
             if st.session_state["iteration"] < len(month_list) and animate:
                 st.experimental_rerun()
     else:
-        comp.claim_type_line_chart(pmpm_claim_type_data, False)
+        comp.claim_type_line_chart(pmpm_claim_type_data.round(), False)
 
 
 ## --------------------------------- ##
@@ -174,48 +175,41 @@ service_1_data = data.pmpm_by_service_category_1()
 service_1_data = service_1_data.loc[
     service_1_data["year_month"].str[:4].isin(selected_range)
 ]
+cat_to_color = dict(zip(sorted(service_1_data["service_category_1"].unique()), ORDINAL))
+
+highlight = alt.selection_point(
+    on='mouseover',
+    clear="mouseout",
+    fields=['service_category_1'],
+    nearest=True,
+)
 
 service_1_chart = (
-    alt.Chart(service_1_data)
+    alt.Chart(service_1_data.round())
     .mark_bar()
     .encode(
         x="year_month",
         y=alt.Y("paid_amount_pmpm"),
-        color="service_category_1:N",
-        tooltip=["service_category_1", "paid_amount_pmpm"],
-    )
-    .configure_legend(orient="bottom")
+        color=alt.Color("service_category_1").scale(
+            domain=list(cat_to_color.keys()),
+            range=list(cat_to_color.values())
+        ),
+        opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.3)),
+        tooltip=["year_month", "service_category_1", "paid_amount_pmpm"],
+    ).add_selection(
+        highlight
+    ).configure_legend(
+        orient="bottom"
+    ).properties(height=500)
 )
 
 st.altair_chart(service_1_chart, use_container_width=True)
 
-# chart_vals = ["Ancillary", "Inpatient", "Office Visit", "Other", "Outpatient"]
-# grouped_service = service_1_data.groupby(by="service_category_1", as_index=False)[
-#     "paid_amount_sum"
-# ].sum()
-# total_member_months = (
-#     service_1_data[["year_month", "member_month_count"]]
-#     .drop_duplicates()["member_month_count"]
-#     .sum()
-# )
-# grouped_service["paid_amount_pmpm"] = (
-#     grouped_service["paid_amount_sum"] / total_member_months
-# )
-# grouped_service.set_index("service_category_1", inplace=True)
-# grouped_service = grouped_service.transpose()
-# grouped_service["Metric"] = "Average PMPM"
-# plost.bar_chart(
-#     data=grouped_service,
-#     bar="Metric",
-#     value=chart_vals,
-#     stack="normalize",
-#     direction="horizontal",
-#     height=200,
-# )
 
 ## --------------------------------- ##
 ## Service Category 2
 ## --------------------------------- ##
+
 service_cat_options = service_1_data["service_category_1"].drop_duplicates().tolist()
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -271,19 +265,6 @@ service_2_chart = (
 
 st.altair_chart(service_2_chart, use_container_width=True)
 
-## --------------------------------- ##
-## --- Pharmacy Spend            --- ##
-## --------------------------------- ##
-st.markdown("## Pharmacy Spend")
-st.markdown(
-    """
-A look at pharmacy spend over time during the claims period selected.
-"""
-)
-pharm_pmpm = data.pmpm_by_claim_type()
-pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["claim_type"] == "pharmacy", :]
-pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["year_month"].str[:4].isin(selected_range)]
-st.line_chart(data=pharm_pmpm, x="year_month", y="paid_amount_sum")
 
 ## --------------------------------- ##
 ## Cost Variables
