@@ -44,12 +44,14 @@ def format_df(df):
     # format column values
     for c in df:
         if 'pct' in c:
-            df[c] = df[c].apply(lambda x: f"{round(x, 4) * 100}%")
+            df[c] = df[c].apply(lambda x: f"{round(x, 4) * 100}%" if x else "").replace("nan%", "")
         elif 'pmpm' in c:
-            df[c] = df[c].apply(lambda x: f"${human_format(x)}")
+            df[c] = df[c].apply(lambda x: f"${human_format(x)}" if x else "").replace("$nan", "")
 
     # format column headers
     df.columns = [
-        c.replace('_', ' ').title().replace('Pmpm', 'PMPM') for c in df
+        c.replace('_', ' ').title()\
+        .replace('Pmpm', 'PMPM')\
+        .replace("Pct Change", "% Δ") for c in df
     ]
     return df
