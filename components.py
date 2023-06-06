@@ -119,7 +119,7 @@ def claim_type_line_chart(df, animated=True):
         "grid": {"right": 140},
         "series": seriesList,
     }
-    st_echarts(options=option, height="450px", width="640px", key="chart")
+    st_echarts(options=option, height="550px", key="chart")
 
 
 def pop_grouped_bar(df):
@@ -158,6 +158,8 @@ def generic_simple_v_bar(df, x, y, title, color=None, height="300px", top_n=None
         "yAxis": {"type": "category", "data": df[y].tolist()},
         "series": [{"data": df[x].tolist(), "type": "bar", "color": color}],
         "title": {"text": title},
+        "tooltip": {"position": "top"},
+        "grid": {"containLabel": True},
     }
     st_echarts(options=options, height=height)
 

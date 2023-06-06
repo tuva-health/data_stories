@@ -3,10 +3,11 @@ import altair as alt
 import util
 import components as comp
 import data
-from palette import ORDINAL
+from palette import ORDINAL, PALETTE
 import time
 import pandas as pd
 
+st.set_page_config(layout="wide")
 comp.add_logo()
 
 
@@ -319,26 +320,40 @@ bot_col1, bot_col2 = st.columns(2)
 with top_col1:
     title = "PMPM by Service Category 2"
     comp.generic_simple_v_bar(
-        df=service_2_data, x="paid_amount_pmpm", y="service_category_2", title=title
+        df=service_2_data.round(),
+        x="paid_amount_pmpm",
+        y="service_category_2",
+        title=title,
+        color=PALETTE["4-cerulean"],
     )
 with top_col2:
     title = "Top 5 Conditions by PMPM"
     comp.generic_simple_v_bar(
-        df=condition_data,
+        df=condition_data.round(),
         x="paid_amount_pmpm",
         y="condition_family",
         title=title,
         top_n=5,
+        color=PALETTE["melon"],
     )
 with bot_col1:
     title = "Top 10 Providers by PMPM"
     comp.generic_simple_v_bar(
-        df=provider_data, x="paid_amount_pmpm", y="provider_name", title=title, top_n=10
+        df=provider_data.round(5),
+        x="paid_amount_pmpm",
+        y="provider_name",
+        title=title,
+        top_n=10,
+        color=PALETTE["french-grey"],
     )
 with bot_col2:
     title = "PMPM by Claim Type"
     comp.generic_simple_v_bar(
-        df=claim_type_data, x="paid_amount_pmpm", y="claim_type", title=title
+        df=claim_type_data.round(),
+        x="paid_amount_pmpm",
+        y="claim_type",
+        title=title,
+        color=PALETTE["2-light-sky-blue"],
     )
 
 
