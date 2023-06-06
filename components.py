@@ -90,6 +90,7 @@ def claim_type_line_chart(df, animated=True):
     seriesList = [
         {
             "type": "line",
+            "smooth": True,
             "datasetId": f"dataset_{s}",
             "showSymbol": False,
             "name": s,
@@ -106,7 +107,9 @@ def claim_type_line_chart(df, animated=True):
         for s in series
     ]
     option = {
-        "color": ["#06405C", "#FFCC05", "#66B1E2"],
+        "color": list(to.keyfilter(
+            lambda x: x in ["2-light-sky-blue", "4-cerulean", "french-grey"], PALETTE
+        ).values()),
         "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
         "title": {"text": "Paid Amount PMPM by Claim Type"},
         "tooltip": {"order": "valueDesc", "trigger": "axis"},
@@ -115,7 +118,7 @@ def claim_type_line_chart(df, animated=True):
         "grid": {"right": 140},
         "series": seriesList,
     }
-    st_echarts(options=option, height="400px", key="chart")
+    st_echarts(options=option, height="450px", width="640px", key="chart")
 
 
 def pop_grouped_bar(df):
