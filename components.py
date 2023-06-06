@@ -5,6 +5,7 @@ import toolz as to
 from palette import PALETTE
 
 from streamlit_extras.metric_cards import style_metric_cards
+from streamlit_extras.app_logo import add_logo as st_add_logo
 
 style_args = {
     "border_size_px": 0,
@@ -135,3 +136,30 @@ def pop_grouped_bar(df):
         "series": [{"type": "bar"} for x in list(set(df["year"]))],
     }
     st_echarts(options=option)
+
+
+def add_logo():
+    st_add_logo(
+        "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Logo-45h.png",
+        height=100
+    )
+    # st.markdown(
+    #     """
+    #     <style>
+    #         [data-testid="stSidebarNav"] {
+    #             background-image: url(https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Logo-45h.png);
+    #             background-repeat: no-repeat;
+    #             padding-top: 120px;
+    #             background-position: 20px 20px;
+    #         }
+    #         [data-testid="stSidebarNav"]::before {
+    #             margin-left: 20px;
+    #             margin-top: 0px;
+    #             font-size: 30px;
+    #             position: relative;
+    #             top: 0px;
+    #         }
+    #     </style>
+    #     """,
+    #     unsafe_allow_html=True,
+    # )

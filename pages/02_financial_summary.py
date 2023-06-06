@@ -8,6 +8,7 @@ from streamlit_echarts import st_echarts
 import time
 import pandas as pd
 
+comp.add_logo()
 
 year_month_values = sorted(list(set(data.year_months()["year_month"])))
 
