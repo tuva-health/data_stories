@@ -23,6 +23,28 @@ pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
 ## Header
 ## --------------------------------- ##
 st.markdown("# Financial Overview")
+st.markdown(
+    f"""
+    These financial summary charts offer a concise and comprehensive snapshot
+    of your organization's financial performance, providing key metrics
+    and insights at a glance.
+
+    ### Overview
+    When it comes to analyzing healthcare data, speed and efficiency are crucial.
+    With the Tuva project, we provide healthcare analysts with a powerful toolset
+    to quickly build data marts on top of claims and EMR data. Seamlessly integrated
+    with this intuitive data app, this solution empowers analysts to effortlessly
+    delve into key metrics, uncover trends, and make informed decisions for
+    optimizing financial performance. Tuva Health's data mart solution genuinely
+    streamlines the process, enabling analysts to obtain valuable insights swiftly
+    and efficiently, revolutionizing healthcare financial analysis.
+
+    Simply slide the time slider below to analyze financial trends over different
+    periods, gaining valuable insights into the ever-changing healthcare landscape.
+    """
+)
+
+
 start_year, end_year = st.select_slider(
     label="Select a range of years",
     options=year_values,
@@ -37,16 +59,11 @@ if len(selected_range) == 1:
     year_string = selected_range[0]
 else:
     year_string = "{} - {}".format(selected_range[0], selected_range[-1])
+st.markdown(f"""
+    ### Spend Summary in {year_string}
 
-st.markdown(
-    f"""
-    These financial summary charts offer a concise and comprehensive snapshot of your organization's financial
-    performance, providing key metrics and insights at a glance.
-
-    The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
-    paid amount and PMPM."""
-)
-st.markdown(f"### Spend Summary in {year_string}")
+    Let's review your key financial performance indicators.
+""")
 summary_stats_data = data.summary_stats()
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
@@ -76,7 +93,12 @@ with col2:
 ## --------------------------------- ##
 ## Spend Change
 ## --------------------------------- ##
+st.markdown(f"""
+     ### Spend Change over Time
 
+     View the following chart to understand changes in medical and pharmacy
+     spend over several years.
+""")
 for ctype in ["medical", "pharmacy", "total"]:
     summary_stats_data[f"current_period_{ctype}_pmpm"] = (
         summary_stats_data[f"current_period_{ctype}_paid"]
@@ -109,11 +131,6 @@ hide_table_row_index = """
 
 # Inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
-st.markdown(
-    """
-   Get a better sense of the change over time using this table.
-"""
-)
 test = pd.concat(
     [
         summary_stats_data.assign(category=lambda x: ctype.title())[
@@ -142,14 +159,15 @@ comp.pop_grouped_bar(test)
 ## --------------------------------- ##
 ## Service Category 1
 ## --------------------------------- ##
-st.markdown("## Service Category")
-st.markdown(
-    """
-Analyzing medical claims by service category allows healthcare insurers to identify patterns, trends, and cost drivers in the service type being performed for the patient.
+st.markdown("### Service Category")
+st.markdown("""
+    Analyzing medical claims by service category allows healthcare insurers
+    to identify patterns, trends, and cost drivers in the service type being
+    performed for the patient.
 
-Here we see that, **outpatient and inpatient spend** have the highest amount of variation over time. Overall spend
-seems to **spike in 2018**, driven by a large increase in outpatient spend 1 month and inpatient
-spend the next.
+    Here we can hover to highlight `Outpatient` spend which has some of the highest
+    variation over time. Overall spend seems to spike in 2018,
+    driven by an increase in outpatient spend one month.
 """
 )
 service_1_data = data.pmpm_by_service_category_1()
@@ -270,7 +288,7 @@ st.line_chart(data=pharm_pmpm, x="year_month", y="paid_amount_sum")
 ## --------------------------------- ##
 ## Cost Variables
 ## --------------------------------- ##
-st.markdown("## Quality Summary")
+st.markdown("### Quality Summary")
 """
 This table details all the use cases for the Tuva Project and relevant claim rows that
 failed our tests. It is recommended that you look into these test results to
