@@ -121,3 +121,18 @@ def pop_grouped_bar(df):
         "series": [{"type": "bar"} for x in list(set(df["year"]))],
     }
     st_echarts(options=option)
+
+
+def generic_simple_v_bar(df, x, y, title, color=None, height="300px", top_n=None):
+    if color is None:
+        color = ""
+    df.sort_values(by=x, inplace=True)
+    if top_n:
+        df = df.head(top_n)
+    options = {
+        "xAxis": {"type": "value"},
+        "yAxis": {"type": "category", "data": df[y].tolist()},
+        "series": [{"data": df[x].tolist(), "type": "bar", "color": color}],
+        "title": {"text": title},
+    }
+    st_echarts(options=options, height=height)

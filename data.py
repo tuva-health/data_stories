@@ -201,6 +201,90 @@ def pmpm_by_service_category_1_2():
 
 
 @st.cache_data
+def pmpm_by_service_category_1_provider():
+    query = """
+        with spend_summary as (
+            select
+               year(claim_end_date)::text || '-' ||
+                 lpad(month(claim_end_date)::text, 2, '0')
+                 as year_month
+               , service_category_1
+               , p.provider_name
+               , sum(paid_amount) as paid_amount_sum
+            from core.medical_claim c
+            left join core.provider p
+            on c.rendering_npi = p.npi
+            group by 1, 2, 3
+            having sum(paid_amount) > 0
+            order by 1, 2, 3 desc
+        )
+        select
+           *
+           , paid_amount_sum / member_month_count as paid_amount_pmpm
+        from spend_summary
+        join pmpm._int_member_month_count using(year_month)
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
+def pmpm_by_service_category_1_condition():
+    query = """
+        with spend_summary as (
+            select
+               year(claim_end_date)::text || '-' ||
+                 lpad(month(claim_end_date)::text, 2, '0')
+                 as year_month
+               , service_category_1
+               , cc.condition_family
+               , sum(paid_amount) as paid_amount_sum
+            from core.medical_claim mc
+            left join chronic_conditions.tuva_chronic_conditions_long cc
+            on mc.patient_id = cc.patient_id
+            and cc.last_diagnosis_date >= mc.claim_start_date
+            and cc.last_diagnosis_date <= mc.claim_end_date
+            group by 1, 2, 3
+            having sum(paid_amount) > 0
+            order by 1, 2, 3 desc
+        )
+        select
+           *
+           , paid_amount_sum / member_month_count as paid_amount_pmpm
+        from spend_summary
+        join pmpm._int_member_month_count using(year_month)
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
+def pmpm_by_service_category_1_claim_type():
+    query = """
+        with spend_summary as (
+            select
+               year(claim_end_date)::text || '-' ||
+                 lpad(month(claim_end_date)::text, 2, '0')
+                 as year_month
+               , service_category_1
+               , claim_type
+               , sum(paid_amount) as paid_amount_sum
+            from core.medical_claim c
+            group by 1, 2, 3
+            having sum(paid_amount) > 0
+            order by 1, 2, 3 desc
+        )
+        select
+           *
+           , paid_amount_sum / member_month_count as paid_amount_pmpm
+        from spend_summary
+        join pmpm._int_member_month_count using(year_month)
+    """
+    data = util.safe_to_pandas(conn, query)
+    return data
+
+
+@st.cache_data
 def pmpm_data():
     query = """SELECT PT.*, PB.MEMBER_COUNT, PHARMACY_SPEND FROM PMPM.PMPM_TRENDS PT
               LEFT JOIN (SELECT CONCAT(LEFT(YEAR_MONTH, 4), '-', RIGHT(YEAR_MONTH, 2)) AS YEAR_MONTH,

@@ -7,6 +7,19 @@ import time
 import pandas as pd
 
 
+def group_for_pmpm(df, grouping_column):
+    grouped_df = (
+        df.groupby(grouping_column, as_index=False)[
+            ["paid_amount_sum", "member_month_count"]
+        ]
+        .sum()
+        .assign(
+            paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"]
+        )
+    )
+    return grouped_df
+
+
 year_month_values = sorted(list(set(data.year_months()["year_month"])))
 
 year_values = sorted(list(set([x[:4] for x in year_month_values])))
@@ -196,7 +209,7 @@ st.altair_chart(service_1_chart, use_container_width=True)
 # )
 
 ## --------------------------------- ##
-## Service Category 2
+## Drilldown from Service Category 1
 ## --------------------------------- ##
 service_cat_options = service_1_data["service_category_1"].drop_duplicates().tolist()
 col1, col2, col3 = st.columns(3)
@@ -219,6 +232,7 @@ with col3:
         label_visibility="collapsed",
     )
 
+# Fetch and filter data based on selections above
 service_2_data = data.pmpm_by_service_category_1_2()
 service_2_data = (
     service_2_data.loc[
@@ -232,26 +246,82 @@ service_2_data = (
     .drop("service_category_1", axis=1)
     .reset_index(drop=True)
 )
-service_2_data = (
-    service_2_data.groupby("service_category_2", as_index=False)[
-        ["paid_amount_sum", "member_month_count"]
+
+condition_data = data.pmpm_by_service_category_1_condition()
+condition_data = (
+    condition_data.loc[
+        condition_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (condition_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & condition_data["service_category_1"].isin([selected_service_cat])
     ]
-    .sum()
-    .assign(paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"])
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
 )
 
-service_2_chart = (
-    alt.Chart(service_2_data)
-    .mark_bar()
-    .encode(
-        x="paid_amount_pmpm",
-        y=alt.Y("service_category_2", sort="-x", axis=alt.Axis(labelLimit=300)),
-        tooltip=["service_category_2", "paid_amount_pmpm"],
+provider_data = data.pmpm_by_service_category_1_provider()
+provider_data = (
+    provider_data.loc[
+        provider_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (provider_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & provider_data["service_category_1"].isin([selected_service_cat])
+    ]
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
+)
+
+claim_type_data = data.pmpm_by_service_category_1_claim_type()
+claim_type_data = (
+    claim_type_data.loc[
+        claim_type_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (claim_type_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & claim_type_data["service_category_1"].isin([selected_service_cat])
+    ]
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
+)
+
+# Re-group to get PMPM
+claim_type_data = group_for_pmpm(claim_type_data, "claim_type")
+condition_data = group_for_pmpm(condition_data, "condition_family")
+provider_data = group_for_pmpm(provider_data, "provider_name")
+service_2_data = group_for_pmpm(service_2_data, "service_category_2")
+
+top_col1, top_col2 = st.columns(2)
+bot_col1, bot_col2 = st.columns(2)
+with top_col1:
+    title = "PMPM by Service Category 2"
+    comp.generic_simple_v_bar(
+        df=service_2_data, x="paid_amount_pmpm", y="service_category_2", title=title
     )
-    .properties(height=300)
-)
+with top_col2:
+    title = "Top 5 Conditions by PMPM"
+    comp.generic_simple_v_bar(
+        df=condition_data,
+        x="paid_amount_pmpm",
+        y="condition_family",
+        title=title,
+        top_n=5,
+    )
+with bot_col1:
+    title = "Top 10 Providers by PMPM"
+    comp.generic_simple_v_bar(
+        df=provider_data, x="paid_amount_pmpm", y="provider_name", title=title, top_n=10
+    )
+with bot_col2:
+    title = "PMPM by Claim Type"
+    comp.generic_simple_v_bar(
+        df=claim_type_data, x="paid_amount_pmpm", y="claim_type", title=title
+    )
 
-st.altair_chart(service_2_chart, use_container_width=True)
 
 ## --------------------------------- ##
 ## --- Pharmacy Spend            --- ##
