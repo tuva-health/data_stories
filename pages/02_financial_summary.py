@@ -152,10 +152,12 @@ test = pd.concat(
         for ctype in ["medical", "pharmacy", "total"]
     ]
 )
-test = test.loc[test.year != year_values[0]]
-st.table(util.format_df(test))
 
-comp.pop_grouped_bar(test)
+tab1, tab2 = st.tabs(["Chart", "Data"])
+with tab1:
+    comp.pop_grouped_bar(test)
+with tab2:
+    st.table(util.format_df(test.sort_values("category")))
 
 ## --------------------------------- ##
 ## Service Category 1
