@@ -3,6 +3,7 @@ from streamlit_echarts import st_echarts
 import util
 import toolz as to
 from palette import PALETTE
+from PIL import Image
 
 from streamlit_extras.metric_cards import style_metric_cards
 from streamlit_extras.app_logo import add_logo as st_add_logo
@@ -189,3 +190,7 @@ def add_logo():
     #     """,
     #     unsafe_allow_html=True,
     # )
+
+
+def favicon():
+    return "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Icon.ico"

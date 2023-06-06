@@ -7,7 +7,11 @@ from palette import ORDINAL, PALETTE
 import time
 import pandas as pd
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    layout="wide",
+    page_icon=comp.favicon(),
+    page_title="Tuva Health - Financial Datastory",
+)
 comp.add_logo()
 
 
