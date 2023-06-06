@@ -140,6 +140,7 @@ def pmpm_by_claim_type():
         )
         select
            *
+           , substr(year_month, 0, 4) as year
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from together
         join pmpm._int_member_month_count using(year_month)

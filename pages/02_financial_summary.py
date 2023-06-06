@@ -1,10 +1,8 @@
 import streamlit as st
 import altair as alt
-import plost
 import util
 import components as comp
 import data
-from streamlit_echarts import st_echarts
 import time
 import pandas as pd
 
@@ -49,6 +47,9 @@ st.markdown(f"### Spend Summary in {year_string}")
 summary_stats_data = data.summary_stats()
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
+]
+pmpm_claim_type_data = pmpm_claim_type_data.loc[
+    pmpm_claim_type_data["year"].isin(selected_range)
 ]
 
 if "iteration" not in st.session_state:
