@@ -3,8 +3,11 @@ import altair as alt
 import util
 import components as comp
 import data
+from palette import ORDINAL
 import time
 import pandas as pd
+
+comp.add_logo()
 
 
 def group_for_pmpm(df, grouping_column):
@@ -33,6 +36,28 @@ pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
 ## Header
 ## --------------------------------- ##
 st.markdown("# Financial Overview")
+st.markdown(
+    f"""
+    These financial summary charts offer a concise and comprehensive snapshot
+    of your organization's financial performance, providing key metrics
+    and insights at a glance.
+
+    ### Overview
+    When it comes to analyzing healthcare data, speed and efficiency are crucial.
+    With the Tuva project, we provide healthcare analysts with a powerful toolset
+    to quickly build data marts on top of claims and EMR data. Seamlessly integrated
+    with this intuitive data app, this solution empowers analysts to effortlessly
+    delve into key metrics, uncover trends, and make informed decisions for
+    optimizing financial performance. Tuva Health's data mart solution genuinely
+    streamlines the process, enabling analysts to obtain valuable insights swiftly
+    and efficiently, revolutionizing healthcare financial analysis.
+
+    Simply slide the time slider below to analyze financial trends over different
+    periods, gaining valuable insights into the ever-changing healthcare landscape.
+    """
+)
+
+
 start_year, end_year = st.select_slider(
     label="Select a range of years",
     options=year_values,
@@ -47,16 +72,13 @@ if len(selected_range) == 1:
     year_string = selected_range[0]
 else:
     year_string = "{} - {}".format(selected_range[0], selected_range[-1])
-
 st.markdown(
     f"""
-    These financial summary charts offer a concise and comprehensive snapshot of your organization's financial
-    performance, providing key metrics and insights at a glance.
+    ### Spend Summary in {year_string}
 
-    The top three metrics you need to know about your data at all times are medical paid amount, pharmacy
-    paid amount and PMPM."""
+    Let's review your key financial performance indicators.
+"""
 )
-st.markdown(f"### Spend Summary in {year_string}")
 summary_stats_data = data.summary_stats()
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
@@ -83,13 +105,20 @@ with col2:
             if st.session_state["iteration"] < len(month_list) and animate:
                 st.experimental_rerun()
     else:
-        comp.claim_type_line_chart(pmpm_claim_type_data, False)
+        comp.claim_type_line_chart(pmpm_claim_type_data.round(), False)
 
 
 ## --------------------------------- ##
 ## Spend Change
 ## --------------------------------- ##
+st.markdown(
+    f"""
+     ### Spend Change over Time
 
+     View the following chart to understand changes in medical and pharmacy
+     spend over several years.
+"""
+)
 for ctype in ["medical", "pharmacy", "total"]:
     summary_stats_data[f"current_period_{ctype}_pmpm"] = (
         summary_stats_data[f"current_period_{ctype}_paid"]
@@ -122,11 +151,6 @@ hide_table_row_index = """
 
 # Inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
-st.markdown(
-    """
-   Get a better sense of the change over time using this table.
-"""
-)
 test = pd.concat(
     [
         summary_stats_data.assign(category=lambda x: ctype.title())[
@@ -147,70 +171,65 @@ test = pd.concat(
         for ctype in ["medical", "pharmacy", "total"]
     ]
 )
-test = test.loc[test.year != year_values[0]]
-st.table(util.format_df(test))
 
-comp.pop_grouped_bar(test)
+tab1, tab2 = st.tabs(["Chart", "Data"])
+with tab1:
+    comp.pop_grouped_bar(test)
+with tab2:
+    st.table(util.format_df(test.sort_values("category")))
 
 ## --------------------------------- ##
 ## Service Category 1
 ## --------------------------------- ##
-st.markdown("## Service Category")
+st.markdown("### Service Category")
 st.markdown(
     """
-Analyzing medical claims by service category allows healthcare insurers to identify patterns, trends, and cost drivers in the service type being performed for the patient.
+    Analyzing medical claims by service category allows healthcare insurers
+    to identify patterns, trends, and cost drivers in the service type being
+    performed for the patient.
 
-Here we see that, **outpatient and inpatient spend** have the highest amount of variation over time. Overall spend
-seems to **spike in 2018**, driven by a large increase in outpatient spend 1 month and inpatient
-spend the next.
+    Here we can hover to highlight `Outpatient` spend which has some of the highest
+    variation over time. Overall spend seems to spike in 2018,
+    driven by an increase in outpatient spend one month.
 """
 )
 service_1_data = data.pmpm_by_service_category_1()
 service_1_data = service_1_data.loc[
     service_1_data["year_month"].str[:4].isin(selected_range)
 ]
+cat_to_color = dict(zip(sorted(service_1_data["service_category_1"].unique()), ORDINAL))
+
+highlight = alt.selection_point(
+    on="mouseover",
+    clear="mouseout",
+    fields=["service_category_1"],
+    nearest=True,
+)
 
 service_1_chart = (
-    alt.Chart(service_1_data)
+    alt.Chart(service_1_data.round())
     .mark_bar()
     .encode(
         x="year_month",
         y=alt.Y("paid_amount_pmpm"),
-        color="service_category_1:N",
-        tooltip=["service_category_1", "paid_amount_pmpm"],
+        color=alt.Color("service_category_1").scale(
+            domain=list(cat_to_color.keys()), range=list(cat_to_color.values())
+        ),
+        opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.3)),
+        tooltip=["year_month", "service_category_1", "paid_amount_pmpm"],
     )
+    .add_selection(highlight)
     .configure_legend(orient="bottom")
+    .properties(height=500)
 )
 
 st.altair_chart(service_1_chart, use_container_width=True)
 
-# chart_vals = ["Ancillary", "Inpatient", "Office Visit", "Other", "Outpatient"]
-# grouped_service = service_1_data.groupby(by="service_category_1", as_index=False)[
-#     "paid_amount_sum"
-# ].sum()
-# total_member_months = (
-#     service_1_data[["year_month", "member_month_count"]]
-#     .drop_duplicates()["member_month_count"]
-#     .sum()
-# )
-# grouped_service["paid_amount_pmpm"] = (
-#     grouped_service["paid_amount_sum"] / total_member_months
-# )
-# grouped_service.set_index("service_category_1", inplace=True)
-# grouped_service = grouped_service.transpose()
-# grouped_service["Metric"] = "Average PMPM"
-# plost.bar_chart(
-#     data=grouped_service,
-#     bar="Metric",
-#     value=chart_vals,
-#     stack="normalize",
-#     direction="horizontal",
-#     height=200,
-# )
 
 ## --------------------------------- ##
 ## Drilldown from Service Category 1
 ## --------------------------------- ##
+
 service_cat_options = service_1_data["service_category_1"].drop_duplicates().tolist()
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -324,23 +343,9 @@ with bot_col2:
 
 
 ## --------------------------------- ##
-## --- Pharmacy Spend            --- ##
-## --------------------------------- ##
-st.markdown("## Pharmacy Spend")
-st.markdown(
-    """
-A look at pharmacy spend over time during the claims period selected.
-"""
-)
-pharm_pmpm = data.pmpm_by_claim_type()
-pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["claim_type"] == "pharmacy", :]
-pharm_pmpm = pharm_pmpm.loc[pharm_pmpm["year_month"].str[:4].isin(selected_range)]
-st.line_chart(data=pharm_pmpm, x="year_month", y="paid_amount_sum")
-
-## --------------------------------- ##
 ## Cost Variables
 ## --------------------------------- ##
-st.markdown("## Quality Summary")
+st.markdown("### Quality Summary")
 """
 This table details all the use cases for the Tuva Project and relevant claim rows that
 failed our tests. It is recommended that you look into these test results to

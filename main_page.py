@@ -3,6 +3,8 @@ import plost
 import components as comp
 import data
 
+comp.add_logo()
+
 cost_data = data.summary_stats()
 pmpm_data = data.pmpm_data()
 demo_gender = data.gender_data()

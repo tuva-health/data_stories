@@ -9,3 +9,5 @@ tomli
 pre-commit
 black
 streamlit-echarts
+streamlit-extras
+toolz

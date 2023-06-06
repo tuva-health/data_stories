@@ -1,6 +1,13 @@
 import streamlit as st
 from streamlit_echarts import st_echarts
 import util
+import toolz as to
+from palette import PALETTE
+
+from streamlit_extras.metric_cards import style_metric_cards
+from streamlit_extras.app_logo import add_logo as st_add_logo
+
+style_args = {"border_size_px": 0, "border_left_color": PALETTE["4-cerulean"]}
 
 
 def financial_bans(summary_stats_data, direction="horizontal"):
@@ -24,12 +31,14 @@ def financial_bans(summary_stats_data, direction="horizontal"):
         st.metric("Pharmacy Spend", util.human_format(pharm_spend))
         st.metric("Member Months", util.human_format(member_mon_count))
         st.metric("Average PMPM", util.human_format(avg_pmpm))
+        style_metric_cards(**style_args)
     else:
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Medical Spend", util.human_format(med_spend))
         col2.metric("Pharmacy Spend", util.human_format(pharm_spend))
         col3.metric("Member Months", util.human_format(member_mon_count))
         col4.metric("Average PMPM", util.human_format(avg_pmpm))
+        style_metric_cards(**style_args)
 
 
 def year_slider(year_values):
@@ -79,6 +88,7 @@ def claim_type_line_chart(df, animated=True):
     seriesList = [
         {
             "type": "line",
+            "smooth": True,
             "datasetId": f"dataset_{s}",
             "showSymbol": False,
             "name": s,
@@ -95,7 +105,12 @@ def claim_type_line_chart(df, animated=True):
         for s in series
     ]
     option = {
-        "color": ["#06405C", "#FFCC05", "#66B1E2"],
+        "color": list(
+            to.keyfilter(
+                lambda x: x in ["2-light-sky-blue", "4-cerulean", "french-grey"],
+                PALETTE,
+            ).values()
+        ),
         "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
         "title": {"text": "Paid Amount PMPM by Claim Type"},
         "tooltip": {"order": "valueDesc", "trigger": "axis"},
@@ -104,15 +119,24 @@ def claim_type_line_chart(df, animated=True):
         "grid": {"right": 140},
         "series": seriesList,
     }
-    st_echarts(options=option, height="400px", key="chart")
+    st_echarts(options=option, height="450px", width="640px", key="chart")
 
 
 def pop_grouped_bar(df):
-    pivoted_df = df.pivot(
-        index="category", columns="year", values="current_period_pmpm"
-    ).reset_index()
+    pivoted_df = (
+        df.pivot(index="category", columns="year", values="current_period_pmpm")
+        .reset_index()
+        .round()
+    )
     list_data = [pivoted_df.columns.to_list()] + pivoted_df.values.tolist()
     option = {
+        "color": list(
+            to.keyfilter(
+                lambda x: x
+                in ["french-grey", "2-light-sky-blue", "3-air-blue", "4-cerulean"],
+                PALETTE,
+            ).values()
+        ),
         "legend": {},
         "tooltip": {},
         "dataset": {"source": list_data},
@@ -136,3 +160,30 @@ def generic_simple_v_bar(df, x, y, title, color=None, height="300px", top_n=None
         "title": {"text": title},
     }
     st_echarts(options=options, height=height)
+
+
+def add_logo():
+    st_add_logo(
+        "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Logo-45h.png",
+        height=100,
+    )
+    # st.markdown(
+    #     """
+    #     <style>
+    #         [data-testid="stSidebarNav"] {
+    #             background-image: url(https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Logo-45h.png);
+    #             background-repeat: no-repeat;
+    #             padding-top: 120px;
+    #             background-position: 20px 20px;
+    #         }
+    #         [data-testid="stSidebarNav"]::before {
+    #             margin-left: 20px;
+    #             margin-top: 0px;
+    #             font-size: 30px;
+    #             position: relative;
+    #             top: 0px;
+    #         }
+    #     </style>
+    #     """,
+    #     unsafe_allow_html=True,
+    # )

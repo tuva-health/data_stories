@@ -1,8 +1,9 @@
 import streamlit as st
 import plost
-import components
+import components as comp
 import data
 
+comp.add_logo()
 
 ## --------------------------------- ##
 ## Chronic Condition
@@ -17,7 +18,7 @@ is `Cardiovascular disease`. The second highest driver is `Metabolic Disease`.
 
 year_month_values = data.year_months()
 year_values = sorted(list(set([x[:4] for x in year_month_values["year_month"]])))
-selected_range = components.year_slider(year_values)
+selected_range = comp.year_slider(year_values)
 
 
 chronic_condition_counts = data.condition_data()
