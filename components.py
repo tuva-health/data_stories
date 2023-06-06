@@ -125,9 +125,12 @@ def claim_type_line_chart(df, animated=True):
 def pop_grouped_bar(df):
     pivoted_df = df.pivot(
         index="category", columns="year", values="current_period_pmpm"
-    ).reset_index()
+    ).reset_index().round()
     list_data = [pivoted_df.columns.to_list()] + pivoted_df.values.tolist()
     option = {
+        "color": list(to.keyfilter(
+            lambda x: x in ["french-grey", "2-light-sky-blue", "3-air-blue", "4-cerulean"], PALETTE
+        ).values()),
         "legend": {},
         "tooltip": {},
         "dataset": {"source": list_data},
