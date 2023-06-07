@@ -1,15 +1,32 @@
 import streamlit as st
 import altair as alt
-import plost
 import util
 import components as comp
 import data
-from streamlit_echarts import st_echarts
-from palette import ORDINAL
+from palette import ORDINAL, PALETTE
 import time
 import pandas as pd
 
+st.set_page_config(
+    layout="wide",
+    page_icon=comp.favicon(),
+    page_title="Tuva Health - Financial Datastory",
+)
 comp.add_logo()
+
+
+def group_for_pmpm(df, grouping_column):
+    grouped_df = (
+        df.groupby(grouping_column, as_index=False)[
+            ["paid_amount_sum", "member_month_count"]
+        ]
+        .sum()
+        .assign(
+            paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"]
+        )
+    )
+    return grouped_df
+
 
 year_month_values = sorted(list(set(data.year_months()["year_month"])))
 
@@ -60,14 +77,19 @@ if len(selected_range) == 1:
     year_string = selected_range[0]
 else:
     year_string = "{} - {}".format(selected_range[0], selected_range[-1])
-st.markdown(f"""
+st.markdown(
+    f"""
     ### Spend Summary in {year_string}
 
     Let's review your key financial performance indicators.
-""")
+"""
+)
 summary_stats_data = data.summary_stats()
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
+]
+pmpm_claim_type_data = pmpm_claim_type_data.loc[
+    pmpm_claim_type_data["year"].isin(selected_range)
 ]
 
 if "iteration" not in st.session_state:
@@ -81,25 +103,27 @@ with col2:
     month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
     if animate:
         while st.session_state["iteration"] < len(month_list):
-            comp.claim_type_line_chart(pmpm_claim_type_data, True)
+            comp.claim_type_line_chart(pmpm_claim_type_data, "525px", True)
             time.sleep(0.05)
             st.session_state["iteration"] += 1
 
             if st.session_state["iteration"] < len(month_list) and animate:
                 st.experimental_rerun()
     else:
-        comp.claim_type_line_chart(pmpm_claim_type_data.round(), False)
+        comp.claim_type_line_chart(pmpm_claim_type_data.round(), "525px", False)
 
 
 ## --------------------------------- ##
 ## Spend Change
 ## --------------------------------- ##
-st.markdown(f"""
+st.markdown(
+    f"""
      ### Spend Change over Time
 
      View the following chart to understand changes in medical and pharmacy
      spend over several years.
-""")
+"""
+)
 for ctype in ["medical", "pharmacy", "total"]:
     summary_stats_data[f"current_period_{ctype}_pmpm"] = (
         summary_stats_data[f"current_period_{ctype}_paid"]
@@ -163,7 +187,8 @@ with tab2:
 ## Service Category 1
 ## --------------------------------- ##
 st.markdown("### Service Category")
-st.markdown("""
+st.markdown(
+    """
     Analyzing medical claims by service category allows healthcare insurers
     to identify patterns, trends, and cost drivers in the service type being
     performed for the patient.
@@ -180,9 +205,9 @@ service_1_data = service_1_data.loc[
 cat_to_color = dict(zip(sorted(service_1_data["service_category_1"].unique()), ORDINAL))
 
 highlight = alt.selection_point(
-    on='mouseover',
+    on="mouseover",
     clear="mouseout",
-    fields=['service_category_1'],
+    fields=["service_category_1"],
     nearest=True,
 )
 
@@ -193,23 +218,21 @@ service_1_chart = (
         x="year_month",
         y=alt.Y("paid_amount_pmpm"),
         color=alt.Color("service_category_1").scale(
-            domain=list(cat_to_color.keys()),
-            range=list(cat_to_color.values())
+            domain=list(cat_to_color.keys()), range=list(cat_to_color.values())
         ),
         opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.3)),
         tooltip=["year_month", "service_category_1", "paid_amount_pmpm"],
-    ).add_selection(
-        highlight
-    ).configure_legend(
-        orient="bottom"
-    ).properties(height=500)
+    )
+    .add_selection(highlight)
+    .configure_legend(orient="bottom")
+    .properties(height=500)
 )
 
 st.altair_chart(service_1_chart, use_container_width=True)
 
 
 ## --------------------------------- ##
-## Service Category 2
+## Drilldown from Service Category 1
 ## --------------------------------- ##
 
 service_cat_options = service_1_data["service_category_1"].drop_duplicates().tolist()
@@ -233,6 +256,7 @@ with col3:
         label_visibility="collapsed",
     )
 
+# Fetch and filter data based on selections above
 service_2_data = data.pmpm_by_service_category_1_2()
 service_2_data = (
     service_2_data.loc[
@@ -246,26 +270,95 @@ service_2_data = (
     .drop("service_category_1", axis=1)
     .reset_index(drop=True)
 )
-service_2_data = (
-    service_2_data.groupby("service_category_2", as_index=False)[
-        ["paid_amount_sum", "member_month_count"]
+
+condition_data = data.pmpm_by_service_category_1_condition()
+condition_data = (
+    condition_data.loc[
+        condition_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (condition_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & condition_data["service_category_1"].isin([selected_service_cat])
     ]
-    .sum()
-    .assign(paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"])
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
 )
 
-service_2_chart = (
-    alt.Chart(service_2_data)
-    .mark_bar()
-    .encode(
+provider_data = data.pmpm_by_service_category_1_provider()
+provider_data = (
+    provider_data.loc[
+        provider_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (provider_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & provider_data["service_category_1"].isin([selected_service_cat])
+    ]
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
+)
+
+claim_type_data = data.pmpm_by_service_category_1_claim_type()
+claim_type_data = (
+    claim_type_data.loc[
+        claim_type_data["year_month"].str[:4].isin(selected_range)
+        & (
+            (claim_type_data["year_month"] == selected_year_month)
+            | (selected_year_month == "All Time")
+        )
+        & claim_type_data["service_category_1"].isin([selected_service_cat])
+    ]
+    .drop("service_category_1", axis=1)
+    .reset_index(drop=True)
+)
+
+# Re-group to get PMPM
+claim_type_data = group_for_pmpm(claim_type_data, "claim_type")
+condition_data = group_for_pmpm(condition_data, "condition_family")
+provider_data = group_for_pmpm(provider_data, "provider_name")
+service_2_data = group_for_pmpm(service_2_data, "service_category_2")
+
+top_col1, top_col2 = st.columns(2)
+bot_col1, bot_col2 = st.columns(2)
+with top_col1:
+    title = "PMPM by Service Category 2"
+    comp.generic_simple_v_bar(
+        df=service_2_data.round(),
         x="paid_amount_pmpm",
-        y=alt.Y("service_category_2", sort="-x", axis=alt.Axis(labelLimit=300)),
-        tooltip=["service_category_2", "paid_amount_pmpm"],
+        y="service_category_2",
+        title=title,
+        color=PALETTE["4-cerulean"],
     )
-    .properties(height=300)
-)
-
-st.altair_chart(service_2_chart, use_container_width=True)
+with top_col2:
+    title = "Top 5 Conditions by PMPM"
+    comp.generic_simple_v_bar(
+        df=condition_data.round(),
+        x="paid_amount_pmpm",
+        y="condition_family",
+        title=title,
+        top_n=5,
+        color=PALETTE["melon"],
+    )
+with bot_col1:
+    title = "Top 10 Providers by PMPM"
+    comp.generic_simple_v_bar(
+        df=provider_data.round(5),
+        x="paid_amount_pmpm",
+        y="provider_name",
+        title=title,
+        top_n=10,
+        color=PALETTE["french-grey"],
+    )
+with bot_col2:
+    title = "PMPM by Claim Type"
+    comp.generic_simple_v_bar(
+        df=claim_type_data.round(),
+        x="paid_amount_pmpm",
+        y="claim_type",
+        title=title,
+        color=PALETTE["2-light-sky-blue"],
+    )
 
 
 ## --------------------------------- ##

@@ -3,14 +3,12 @@ from streamlit_echarts import st_echarts
 import util
 import toolz as to
 from palette import PALETTE
+from PIL import Image
 
 from streamlit_extras.metric_cards import style_metric_cards
 from streamlit_extras.app_logo import add_logo as st_add_logo
 
-style_args = {
-    "border_size_px": 0,
-    "border_left_color": PALETTE["4-cerulean"]
-}
+style_args = {"border_size_px": 0, "border_left_color": PALETTE["4-cerulean"]}
 
 
 def financial_bans(summary_stats_data, direction="horizontal"):
@@ -64,7 +62,7 @@ def year_slider(year_values):
     return selected_range
 
 
-def claim_type_line_chart(df, animated=True):
+def claim_type_line_chart(df, height="300px", animated=True):
     if animated:
         t = st.session_state["iteration"]
         month_list = sorted(list(set(df["year_month"])))
@@ -108,9 +106,12 @@ def claim_type_line_chart(df, animated=True):
         for s in series
     ]
     option = {
-        "color": list(to.keyfilter(
-            lambda x: x in ["2-light-sky-blue", "4-cerulean", "french-grey"], PALETTE
-        ).values()),
+        "color": list(
+            to.keyfilter(
+                lambda x: x in ["2-light-sky-blue", "4-cerulean", "french-grey"],
+                PALETTE,
+            ).values()
+        ),
         "dataset": [{"id": "dataset_raw", "source": list_data}] + datasetWithFilters,
         "title": {"text": "Paid Amount PMPM by Claim Type"},
         "tooltip": {"order": "valueDesc", "trigger": "axis"},
@@ -119,18 +120,24 @@ def claim_type_line_chart(df, animated=True):
         "grid": {"right": 140},
         "series": seriesList,
     }
-    st_echarts(options=option, height="450px", width="640px", key="chart")
+    st_echarts(options=option, height=height, key="chart")
 
 
 def pop_grouped_bar(df):
-    pivoted_df = df.pivot(
-        index="category", columns="year", values="current_period_pmpm"
-    ).reset_index().round()
+    pivoted_df = (
+        df.pivot(index="category", columns="year", values="current_period_pmpm")
+        .reset_index()
+        .round()
+    )
     list_data = [pivoted_df.columns.to_list()] + pivoted_df.values.tolist()
     option = {
-        "color": list(to.keyfilter(
-            lambda x: x in ["french-grey", "2-light-sky-blue", "3-air-blue", "4-cerulean"], PALETTE
-        ).values()),
+        "color": list(
+            to.keyfilter(
+                lambda x: x
+                in ["french-grey", "2-light-sky-blue", "3-air-blue", "4-cerulean"],
+                PALETTE,
+            ).values()
+        ),
         "legend": {},
         "tooltip": {},
         "dataset": {"source": list_data},
@@ -141,10 +148,27 @@ def pop_grouped_bar(df):
     st_echarts(options=option)
 
 
+def generic_simple_v_bar(df, x, y, title, color=None, height="300px", top_n=None):
+    if color is None:
+        color = ""
+    df.sort_values(by=x, inplace=True)
+    if top_n:
+        df = df.head(top_n)
+    options = {
+        "xAxis": {"type": "value"},
+        "yAxis": {"type": "category", "data": df[y].tolist()},
+        "series": [{"data": df[x].tolist(), "type": "bar", "color": color}],
+        "title": {"text": title},
+        "tooltip": {"position": "top"},
+        "grid": {"containLabel": True},
+    }
+    st_echarts(options=options, height=height)
+
+
 def add_logo():
     st_add_logo(
         "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Logo-45h.png",
-        height=100
+        height=100,
     )
     # st.markdown(
     #     """
@@ -166,3 +190,7 @@ def add_logo():
     #     """,
     #     unsafe_allow_html=True,
     # )
+
+
+def favicon():
+    return "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Icon.ico"
