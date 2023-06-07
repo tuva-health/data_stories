@@ -103,14 +103,14 @@ with col2:
     month_list = sorted(list(set(pmpm_claim_type_data["year_month"])))
     if animate:
         while st.session_state["iteration"] < len(month_list):
-            comp.claim_type_line_chart(pmpm_claim_type_data, True)
+            comp.claim_type_line_chart(pmpm_claim_type_data, "525px", True)
             time.sleep(0.05)
             st.session_state["iteration"] += 1
 
             if st.session_state["iteration"] < len(month_list) and animate:
                 st.experimental_rerun()
     else:
-        comp.claim_type_line_chart(pmpm_claim_type_data.round(), False)
+        comp.claim_type_line_chart(pmpm_claim_type_data.round(), "525px", False)
 
 
 ## --------------------------------- ##

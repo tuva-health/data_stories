@@ -62,7 +62,7 @@ def year_slider(year_values):
     return selected_range
 
 
-def claim_type_line_chart(df, animated=True):
+def claim_type_line_chart(df, height="300px", animated=True):
     if animated:
         t = st.session_state["iteration"]
         month_list = sorted(list(set(df["year_month"])))
@@ -120,7 +120,7 @@ def claim_type_line_chart(df, animated=True):
         "grid": {"right": 140},
         "series": seriesList,
     }
-    st_echarts(options=option, height="550px", key="chart")
+    st_echarts(options=option, height=height, key="chart")
 
 
 def pop_grouped_bar(df):
