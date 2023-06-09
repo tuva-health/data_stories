@@ -3,6 +3,9 @@ import pandas as pd
 import util
 
 conn = util.connection(database="dev_lipsa")
+s3_uri = "s3://tuva-public-resources/data-extracts/"
+
+global_converters = {"year": str}
 
 
 @st.cache_data
@@ -10,7 +13,7 @@ def test_results():
     query = """
     select * from data_profiling.test_result
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "test_results.csv")
     return data
 
 
@@ -19,7 +22,7 @@ def use_case():
     query = """
     select * from data_profiling.use_case
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "use_case.csv")
     return data
 
 
@@ -30,7 +33,7 @@ def cost_summary():
         from dbt_lipsa.cost_summary
         order by 1, 2, 3
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "cost_summary.csv")
     return data
 
 
@@ -47,7 +50,7 @@ def year_months():
         having sum(paid_amount) > 10
         order by 1
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "year_months.csv")
     return data
 
 
@@ -107,7 +110,7 @@ def summary_stats():
         join pharmacy using(year)
         join elig using(year)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "summary_stats.csv", converters=global_converters)
     return data
 
 
@@ -145,7 +148,7 @@ def pmpm_by_claim_type():
         from together
         join pmpm._int_member_month_count using(year_month)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_claim_type.csv", converters=global_converters)
     return data
 
 
@@ -170,7 +173,7 @@ def pmpm_by_service_category_1():
         from spend_summary
         join pmpm._int_member_month_count using(year_month)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_service_category_1.csv")
     return data
 
 
@@ -196,7 +199,7 @@ def pmpm_by_service_category_1_2():
         from spend_summary
         join pmpm._int_member_month_count using(year_month)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_2.csv")
     return data
 
 
@@ -224,7 +227,7 @@ def pmpm_by_service_category_1_provider():
         from spend_summary
         join pmpm._int_member_month_count using(year_month)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_provider.csv")
     return data
 
 
@@ -254,7 +257,7 @@ def pmpm_by_service_category_1_condition():
         from spend_summary
         join pmpm._int_member_month_count using(year_month)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_condition.csv")
     return data
 
 
@@ -280,7 +283,7 @@ def pmpm_by_service_category_1_claim_type():
         from spend_summary
         join pmpm._int_member_month_count using(year_month)
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_claim_type.csv")
     return data
 
 
@@ -294,9 +297,9 @@ def pmpm_data():
                          GROUP BY YEAR_MONTH) AS PB
               ON PT.YEAR_MONTH = PB.YEAR_MONTH;"""
 
-    data = util.safe_to_pandas(conn, query)
-    data["year_month"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.date
-    data["year"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.year
+    data = pd.read_csv(s3_uri + "pmpm_data.csv")
+    # data["year_month"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.date
+    data["year"] = data["year_month"].str[:4]
     data["pharmacy_spend"] = data["pharmacy_spend"].astype(float)
 
     return data
@@ -305,14 +308,14 @@ def pmpm_data():
 @st.cache_data
 def gender_data():
     query = """SELECT GENDER, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "gender_data.csv")
     return data
 
 
 @st.cache_data
 def race_data():
     query = """SELECT RACE, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "race_data.csv")
     return data
 
 
@@ -329,7 +332,7 @@ def age_data():
                 FROM CORE.PATIENT
                 GROUP BY 1
                 ORDER BY 1;"""
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "age_data.csv")
     return data
 
 
@@ -371,7 +374,7 @@ def pmpm_by_chronic_condition():
         join pmpm._int_member_month_count using(year_month)
         order by 2, 1
     """
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "pmpm_by_chronic_condition.csv")
     return data
 
 
@@ -385,7 +388,7 @@ def condition_data():
               FROM CHRONIC_CONDITIONS.TUVA_CHRONIC_CONDITIONS_LONG
               GROUP BY 1,2
               ORDER BY 3 DESC;"""
-    data = util.safe_to_pandas(conn, query)
+    data = pd.read_csv(s3_uri + "condition_data.csv")
     data["diagnosis_year"] = pd.to_datetime(
         data["diagnosis_year_month"]
     ).dt.year.astype(str)
