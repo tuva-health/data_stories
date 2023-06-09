@@ -298,8 +298,8 @@ def pmpm_data():
               ON PT.YEAR_MONTH = PB.YEAR_MONTH;"""
 
     data = pd.read_csv(s3_uri + "pmpm_data.csv")
-    data["year_month"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.date
-    data["year"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.year
+    # data["year_month"] = pd.to_datetime(data["year_month"], format="%Y-%m").dt.date
+    data["year"] = data["year_month"].str[:4]
     data["pharmacy_spend"] = data["pharmacy_spend"].astype(float)
 
     return data
