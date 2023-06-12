@@ -1,4 +1,5 @@
 import streamlit as st
+from st_pages import show_pages_from_config, add_page_title, hide_pages
 import altair as alt
 import util
 import components as comp
@@ -6,13 +7,6 @@ import data
 from palette import ORDINAL, PALETTE
 import time
 import pandas as pd
-
-st.set_page_config(
-    layout="wide",
-    page_icon=comp.favicon(),
-    page_title="Tuva Health - Financial Datastory",
-)
-comp.add_logo()
 
 
 def group_for_pmpm(df, grouping_column):
@@ -28,19 +22,30 @@ def group_for_pmpm(df, grouping_column):
     return grouped_df
 
 
-year_month_values = sorted(list(set(data.year_months()["year_month"])))
+## --------------------------------- ##
+## --- Page Setup
+## --------------------------------- ##
+st.set_page_config(
+    layout="wide",
+    page_icon=comp.favicon(),
+    page_title="Tuva Health - Financial Datastory",
+)
+comp.add_logo()
+add_page_title()
+show_pages_from_config()
 
-year_values = sorted(list(set([x[:4] for x in year_month_values])))
 ## --------------------------------- ##
 ## ---                           --- ##
 ## --------------------------------- ##
+year_month_values = sorted(list(set(data.year_months()["year_month"])))
+
+year_values = sorted(list(set([x[:4] for x in year_month_values])))
 pmpm_claim_type_data = data.pmpm_by_claim_type()
 pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
 
 ## --------------------------------- ##
 ## Header
 ## --------------------------------- ##
-st.markdown("# Financial Overview")
 st.markdown(
     f"""
     These financial summary charts offer a concise and comprehensive snapshot

@@ -1,0 +1,7 @@
+[[pages]]
+path = "Financial_Summary.py"
+name = "Financial Overview"
+
+[[pages]]
+path = "pages/03_chronic_conditions.py"
+name = "Chronic Conditions"
