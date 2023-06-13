@@ -194,3 +194,7 @@ def add_logo():
 
 def favicon():
     return "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Icon.ico"
+
+
+def tuva_logo():
+    return "https://tuva-public-resources.s3.amazonaws.com/TuvaHealth-Logo-45h.png"

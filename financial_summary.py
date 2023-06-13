@@ -1,5 +1,5 @@
 import streamlit as st
-from st_pages import show_pages_from_config, add_page_title, hide_pages
+from st_pages import show_pages_from_config, add_page_title
 import altair as alt
 import util
 import components as comp
@@ -29,8 +29,10 @@ st.set_page_config(
     layout="wide",
     page_icon=comp.favicon(),
     page_title="Tuva Health - Financial Datastory",
+    initial_sidebar_state="expanded",
 )
 comp.add_logo()
+st.image(comp.tuva_logo())
 add_page_title()
 show_pages_from_config()
 
