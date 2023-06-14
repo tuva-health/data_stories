@@ -162,6 +162,7 @@ def pmpm_by_service_category_1():
                  as year_month
                , service_category_1
                , sum(paid_amount) as paid_amount_sum
+               , count(*) as row_count
             from core.medical_claim
             group by 1, 2
             having sum(paid_amount) > 0
@@ -188,6 +189,7 @@ def pmpm_by_service_category_1_2():
                , service_category_1
                , service_category_2
                , sum(paid_amount) as paid_amount_sum
+               , count(*) as row_count
             from core.medical_claim
             group by 1, 2, 3
             having sum(paid_amount) > 0
@@ -214,6 +216,7 @@ def pmpm_by_service_category_1_provider():
                , service_category_1
                , p.provider_name
                , sum(paid_amount) as paid_amount_sum
+               , count(*) as row_count
             from core.medical_claim c
             left join core.provider p
             on c.rendering_npi = p.npi
@@ -242,6 +245,7 @@ def pmpm_by_service_category_1_condition():
                , service_category_1
                , cc.condition_family
                , sum(paid_amount) as paid_amount_sum
+               , count(*) as row_count
             from core.medical_claim mc
             left join chronic_conditions.tuva_chronic_conditions_long cc
             on mc.patient_id = cc.patient_id
@@ -272,6 +276,7 @@ def pmpm_by_service_category_1_claim_type():
                , service_category_1
                , claim_type
                , sum(paid_amount) as paid_amount_sum
+               , count(*) as row_count
             from core.medical_claim c
             group by 1, 2, 3
             having sum(paid_amount) > 0

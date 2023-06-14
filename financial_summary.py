@@ -10,11 +10,13 @@ import pandas as pd
 
 
 def group_for_pmpm(df, grouping_column):
+    st.table(df)
     grouped_df = (
         df.groupby(grouping_column, as_index=False)[
-            ["paid_amount_sum", "member_month_count"]
+            ["paid_amount_sum", "member_month_count", "row_count"]
         ]
         .sum()
+        .query("row_count > 10")
         .assign(
             paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"]
         )
