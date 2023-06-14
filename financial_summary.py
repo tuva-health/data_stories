@@ -69,16 +69,19 @@ st.markdown(
     """
 )
 
+if len(year_values) > 1:
+    start_year, end_year = st.select_slider(
+        label="Select a range of years",
+        options=year_values,
+        value=(year_values[0], year_values[-1]),
+        label_visibility="collapsed",
+    )
+    selected_range = year_values[
+        year_values.index(start_year) : year_values.index(end_year) + 1
+    ]
+else:
+    selected_range = year_values
 
-start_year, end_year = st.select_slider(
-    label="Select a range of years",
-    options=year_values,
-    value=(year_values[0], year_values[-1]),
-    label_visibility="collapsed",
-)
-selected_range = year_values[
-    year_values.index(start_year) : year_values.index(end_year) + 1
-]
 
 if len(selected_range) == 1:
     year_string = selected_range[0]
@@ -92,6 +95,7 @@ st.markdown(
 """
 )
 summary_stats_data = data.summary_stats()
+st.write(summary_stats_data)
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
 ]
