@@ -97,7 +97,6 @@ st.markdown(
 """
 )
 summary_stats_data = data.summary_stats()
-st.write(summary_stats_data)
 summary_stats_data = summary_stats_data.loc[
     summary_stats_data["year"].isin(selected_range)
 ]
@@ -137,7 +136,7 @@ st.markdown(
      spend over several years.
 """
 )
-for ctype in ["medical", "pharmacy", "total"]:
+for ctype in ["medical"]:
     summary_stats_data[f"current_period_{ctype}_pmpm"] = (
         summary_stats_data[f"current_period_{ctype}_paid"]
         .astype(float)
@@ -173,7 +172,7 @@ test = pd.concat(
     [
         summary_stats_data.assign(category=lambda x: ctype.title())[
             [
-                "year",
+                "display",
                 "category",
                 f"prior_period_{ctype}_pmpm",
                 f"current_period_{ctype}_pmpm",
@@ -186,7 +185,9 @@ test = pd.concat(
                 f"pct_change_{ctype}_pmpm": "pct_change_pmpm",
             }
         )
-        for ctype in ["medical", "pharmacy", "total"]
+        for ctype in [
+            "medical",
+        ]
     ]
 )
 

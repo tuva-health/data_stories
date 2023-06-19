@@ -24,19 +24,19 @@ def financial_bans(summary_stats_data, direction="horizontal"):
     ]
 
     med_spend = summary_stats_data["current_period_medical_paid"].sum()
-    pharm_spend = summary_stats_data["current_period_pharmacy_paid"].sum()
+    # pharm_spend = summary_stats_data["current_period_pharmacy_paid"].sum()
     member_mon_count = summary_stats_data["current_period_member_months"].sum()
     avg_pmpm = med_spend / member_mon_count
     if direction == "vertical":
         st.metric("Medical Spend", util.human_format(med_spend))
-        st.metric("Pharmacy Spend", util.human_format(pharm_spend))
+        # st.metric("Pharmacy Spend", util.human_format(pharm_spend))
         st.metric("Member Months", util.human_format(member_mon_count))
         st.metric("Average PMPM", util.human_format(avg_pmpm))
         style_metric_cards(**style_args)
     else:
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Medical Spend", util.human_format(med_spend))
-        col2.metric("Pharmacy Spend", util.human_format(pharm_spend))
+        # col2.metric("Pharmacy Spend", util.human_format(pharm_spend))
         col3.metric("Member Months", util.human_format(member_mon_count))
         col4.metric("Average PMPM", util.human_format(avg_pmpm))
         style_metric_cards(**style_args)
@@ -125,7 +125,7 @@ def claim_type_line_chart(df, height="300px", animated=True):
 
 def pop_grouped_bar(df):
     pivoted_df = (
-        df.pivot(index="category", columns="year", values="current_period_pmpm")
+        df.pivot(index="category", columns="display", values="current_period_pmpm")
         .reset_index()
         .round()
     )
@@ -143,7 +143,7 @@ def pop_grouped_bar(df):
         "dataset": {"source": list_data},
         "xAxis": {"type": "category", "data": sorted(list(set(df["category"])))},
         "yAxis": {"type": "value"},
-        "series": [{"type": "bar"} for x in list(set(df["year"]))],
+        "series": [{"type": "bar"} for x in list(set(df["display"]))],
     }
     st_echarts(options=option)
 
