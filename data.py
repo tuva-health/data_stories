@@ -3,7 +3,7 @@ import pandas as pd
 import util
 
 conn = util.connection(database="dev_lipsa")
-s3_uri = "s3://tuva-public-resources/data-extracts/"
+s3_uri = "s3://tuva-public-resources/data-extracts/lds/"
 
 global_converters = {"year": str}
 
@@ -13,6 +13,7 @@ def test_results():
     query = """
     select * from data_profiling.test_result
     """
+
     data = pd.read_csv(s3_uri + "test_results.csv")
     return data
 
@@ -22,6 +23,7 @@ def use_case():
     query = """
     select * from data_profiling.use_case
     """
+
     data = pd.read_csv(s3_uri + "use_case.csv")
     return data
 
@@ -33,6 +35,7 @@ def cost_summary():
         from dbt_lipsa.cost_summary
         order by 1, 2, 3
     """
+
     data = pd.read_csv(s3_uri + "cost_summary.csv")
     return data
 
@@ -50,6 +53,7 @@ def year_months():
         having sum(paid_amount) > 10
         order by 1
     """
+
     data = pd.read_csv(s3_uri + "year_months.csv")
     return data
 
@@ -57,59 +61,43 @@ def year_months():
 @st.cache_data
 def summary_stats():
     query = """
-        with medical as (
-           select distinct
-               year(claim_end_date)::text year
-               , sum(paid_amount) as medical_paid_amount
-           from core.medical_claim
-           group by 1
-        )
-        , pharmacy as (
-           select
-               year(dispensing_date)::text year
-               , sum(paid_amount) as pharmacy_paid_amount
-           from core.pharmacy_claim
-           group by 1
-        ), elig as (
-           select
-               substr(year_month, 0, 4) as year
-               , sum(member_month_count) as member_month_count
-           from pmpm._int_member_month_count
-           group by 1
-        )
-        select
-            year
-            , lag(year) over(order by year) as prior_year
-            , medical_paid_amount + pharmacy_paid_amount as current_period_total_paid
-            , lag(medical_paid_amount + pharmacy_paid_amount)
-              over(order by year) as prior_period_total_paid
-            , div0null(
-                 medical_paid_amount + pharmacy_paid_amount
-                 - lag(medical_paid_amount + pharmacy_paid_amount) over(order by year),
-                 lag(medical_paid_amount + pharmacy_paid_amount) over(order by year)
-              ) as pct_change_total_paid
-            , medical_paid_amount as current_period_medical_paid
-            , lag(medical_paid_amount) over(order by year) as prior_period_medical_paid
-            , div0null(
-                 medical_paid_amount - lag(medical_paid_amount) over(order by year),
-                 lag(medical_paid_amount) over(order by year)
-              ) as pct_change_medical_paid
-            , pharmacy_paid_amount as current_period_pharmacy_paid
-            , lag(pharmacy_paid_amount) over(order by year) as prior_period_pharmacy_paid
-            , div0null(
-                 pharmacy_paid_amount - lag(pharmacy_paid_amount) over(order by year),
-                 lag(pharmacy_paid_amount) over(order by year)
-              ) as pct_change_pharmacy_paid
-            , member_month_count as current_period_member_months
-            , lag(member_month_count) over(order by year) as prior_period_member_months
-            , div0null(
-                 member_month_count - lag(member_month_count) over(order by year),
-                 lag(member_month_count) over(order by year)
-            ) as pct_change_member_months
-        from medical
-        join pharmacy using(year)
-        join elig using(year)
+    with medical as (
+       select distinct
+           year(claim_end_date)::text year
+           , quarter(claim_end_date)::text quarter
+           , sum(paid_amount) as medical_paid_amount
+       from core.medical_claim
+       group by 1, 2
+    )
+    , elig as (
+       select
+            substr(year_month, 0, 4) as year
+           , quarter(to_date(concat(year_month, '01'), 'YYYYMMDD')) as quarter
+           , sum(member_months) as member_month_count
+       from pmpm.pmpm
+       group by 1, 2
+    )
+    select
+        concat(year, 'Q', quarter) as display
+        , year
+        , quarter
+        , lag(quarter) over(order by quarter) as prior_quarter
+        , medical_paid_amount as current_period_medical_paid
+        , lag(medical_paid_amount) over(order by quarter) as prior_period_medical_paid
+        , div0null(
+             medical_paid_amount - lag(medical_paid_amount) over(order by quarter),
+             lag(medical_paid_amount) over(order by quarter)
+          ) as pct_change_medical_paid
+        , member_month_count as current_period_member_months
+        , lag(member_month_count) over(order by quarter) as prior_period_member_months
+        , div0null(
+             member_month_count - lag(member_month_count) over(order by quarter),
+             lag(member_month_count) over(order by quarter)
+        ) as pct_change_member_months
+    from medical
+    join elig using(year, quarter)
     """
+
     data = pd.read_csv(s3_uri + "summary_stats.csv", converters=global_converters)
     return data
 
@@ -140,14 +128,20 @@ def pmpm_by_claim_type():
         ), together as (
            select * from spend_summary union all
            select * from pharmacy_summary
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
            *
            , substr(year_month, 0, 4) as year
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from together
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_claim_type.csv", converters=global_converters)
     return data
 
@@ -164,16 +158,23 @@ def pmpm_by_service_category_1():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim
+            left join service_category.service_category_grouper using(claim_id)
             group by 1, 2
             having sum(paid_amount) > 0
             order by 1, 2 desc
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
            *
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from spend_summary
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_service_category_1.csv")
     return data
 
@@ -191,16 +192,23 @@ def pmpm_by_service_category_1_2():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim
+            left join service_category.service_category_grouper using(claim_id)
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
            *
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from spend_summary
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_2.csv")
     return data
 
@@ -218,18 +226,25 @@ def pmpm_by_service_category_1_provider():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim c
+            left join service_category.service_category_grouper using(claim_id)
             left join core.provider p
             on c.rendering_npi = p.npi
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
            *
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from spend_summary
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_provider.csv")
     return data
 
@@ -247,6 +262,7 @@ def pmpm_by_service_category_1_condition():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim mc
+            left join service_category.service_category_grouper using(claim_id)
             left join chronic_conditions.tuva_chronic_conditions_long cc
             on mc.patient_id = cc.patient_id
             and cc.last_diagnosis_date >= mc.claim_start_date
@@ -254,13 +270,19 @@ def pmpm_by_service_category_1_condition():
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
            *
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from spend_summary
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_condition.csv")
     return data
 
@@ -278,16 +300,23 @@ def pmpm_by_service_category_1_claim_type():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim c
+            left join service_category.service_category_grouper using(claim_id)
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
            *
            , paid_amount_sum / member_month_count as paid_amount_pmpm
         from spend_summary
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_claim_type.csv")
     return data
 
@@ -313,6 +342,7 @@ def pmpm_data():
 @st.cache_data
 def gender_data():
     query = """SELECT GENDER, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
+
     data = pd.read_csv(s3_uri + "gender_data.csv")
     return data
 
@@ -320,6 +350,7 @@ def gender_data():
 @st.cache_data
 def race_data():
     query = """SELECT RACE, COUNT(*) AS COUNT FROM CORE.PATIENT GROUP BY 1;"""
+
     data = pd.read_csv(s3_uri + "race_data.csv")
     return data
 
@@ -337,6 +368,7 @@ def age_data():
                 FROM CORE.PATIENT
                 GROUP BY 1
                 ORDER BY 1;"""
+
     data = pd.read_csv(s3_uri + "age_data.csv")
     return data
 
@@ -372,13 +404,19 @@ def pmpm_by_chronic_condition():
             from conditions
             join medical_spend using(patient_id, claim_id, year_month)
             group by 1, 2
+        ), elig as (
+            select
+            CONCAT(LEFT(year_month, 4), '-', RIGHT(year_month, 2)) as year_month
+           , member_months as member_month_count
+            from pmpm.pmpm
         )
         select
             *
         from merged
-        join pmpm._int_member_month_count using(year_month)
+        join elig using(year_month)
         order by 2, 1
     """
+
     data = pd.read_csv(s3_uri + "pmpm_by_chronic_condition.csv")
     return data
 
@@ -393,6 +431,7 @@ def condition_data():
               FROM CHRONIC_CONDITIONS.TUVA_CHRONIC_CONDITIONS_LONG
               GROUP BY 1,2
               ORDER BY 3 DESC;"""
+
     data = pd.read_csv(s3_uri + "condition_data.csv")
     data["diagnosis_year"] = pd.to_datetime(
         data["diagnosis_year_month"]
