@@ -265,8 +265,8 @@ def pmpm_by_service_category_1_condition():
             left join service_category.service_category_grouper using(claim_id)
             left join chronic_conditions.tuva_chronic_conditions_long cc
             on mc.patient_id = cc.patient_id
-            and cc.last_diagnosis_date >= mc.claim_start_date
-            and cc.last_diagnosis_date <= mc.claim_end_date
+            and cc.last_diagnosis_date >= mc.claim_end_date
+            and cc.first_diagnosis_date <= mc.claim_end_date
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc

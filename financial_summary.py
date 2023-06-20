@@ -10,7 +10,6 @@ import pandas as pd
 
 
 def group_for_pmpm(df, grouping_column):
-    st.table(df)
     grouped_df = (
         df.groupby(grouping_column, as_index=False)[
             ["paid_amount_sum", "member_month_count", "row_count"]
@@ -299,7 +298,7 @@ condition_data = (
     .reset_index(drop=True)
 )
 
-provider_data = data.pmpm_by_service_category_1_provider()
+provider_data = data.pmpm_by_service_category_1_provider().head(5)
 provider_data = (
     provider_data.loc[
         provider_data["year_month"].str[:4].isin(selected_range)
