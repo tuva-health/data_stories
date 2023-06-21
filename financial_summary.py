@@ -371,10 +371,10 @@ all the checks that failed.
 test_result_data = data.test_results()
 st.dataframe(test_result_data, use_container_width=True)
 
-st.markdown(
-    """
-Then check out the distribution of cost for the spend variables.
-"""
-)
-cost_summary_data = data.cost_summary()
-st.dataframe(cost_summary_data, use_container_width=True)
+# st.markdown(
+#     """
+# Then check out the distribution of cost for the spend variables.
+# """
+# )
+# cost_summary_data = data.cost_summary()
+# st.dataframe(cost_summary_data, use_container_width=True)
