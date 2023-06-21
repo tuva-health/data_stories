@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import dask.dataframe as dd
 import util
 
 conn = util.connection(database="dev_lipsa")
@@ -214,7 +215,7 @@ def pmpm_by_service_category_1_2():
 
 
 @st.cache_data
-def pmpm_by_service_category_1_provider():
+def pmpm_by_service_category_1_provider(service_cat, year_month):
     query = """
         with spend_summary as (
             select
@@ -244,9 +245,19 @@ def pmpm_by_service_category_1_provider():
         from spend_summary
         join elig using(year_month)
     """
+    data_path = s3_uri + "pmpm_by_service_category_1_provider.csv"
+    data = dd.read_csv(data_path, storage_options={"anon": True})
+    data = (
+        data.loc[
+            ((data["year_month"] == year_month) | (year_month == "All Time"))
+            & data["service_category_1"].isin([service_cat])
+        ]
+        .drop("service_category_1", axis=1)
+        .reset_index(drop=True)
+    )
 
-    data = pd.read_csv(s3_uri + "pmpm_by_service_category_1_provider.csv")
-    return data
+    grouped = util.group_for_pmpm(data, "provider_name")
+    return grouped.compute()
 
 
 @st.cache_data

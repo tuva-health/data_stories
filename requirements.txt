@@ -14,3 +14,4 @@ st-pages
 toolz
 altair
 s3fs
+dask

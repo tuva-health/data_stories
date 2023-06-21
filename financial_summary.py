@@ -9,20 +9,6 @@ import time
 import pandas as pd
 
 
-def group_for_pmpm(df, grouping_column):
-    grouped_df = (
-        df.groupby(grouping_column, as_index=False)[
-            ["paid_amount_sum", "member_month_count", "row_count"]
-        ]
-        .sum()
-        .query("row_count > 10")
-        .assign(
-            paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"]
-        )
-    )
-    return grouped_df
-
-
 ## --------------------------------- ##
 ## --- Page Setup
 ## --------------------------------- ##
@@ -273,8 +259,7 @@ with col3:
 service_2_data = data.pmpm_by_service_category_1_2()
 service_2_data = (
     service_2_data.loc[
-        service_2_data["year_month"].str[:4].isin(selected_range)
-        & (
+        (
             (service_2_data["year_month"] == selected_year_month)
             | (selected_year_month == "All Time")
         )
@@ -287,8 +272,7 @@ service_2_data = (
 condition_data = data.pmpm_by_service_category_1_condition()
 condition_data = (
     condition_data.loc[
-        condition_data["year_month"].str[:4].isin(selected_range)
-        & (
+        (
             (condition_data["year_month"] == selected_year_month)
             | (selected_year_month == "All Time")
         )
@@ -298,25 +282,14 @@ condition_data = (
     .reset_index(drop=True)
 )
 
-provider_data = data.pmpm_by_service_category_1_provider().head(5)
-provider_data = (
-    provider_data.loc[
-        provider_data["year_month"].str[:4].isin(selected_range)
-        & (
-            (provider_data["year_month"] == selected_year_month)
-            | (selected_year_month == "All Time")
-        )
-        & provider_data["service_category_1"].isin([selected_service_cat])
-    ]
-    .drop("service_category_1", axis=1)
-    .reset_index(drop=True)
+provider_data = data.pmpm_by_service_category_1_provider(
+    selected_service_cat, selected_year_month
 )
 
 claim_type_data = data.pmpm_by_service_category_1_claim_type()
 claim_type_data = (
     claim_type_data.loc[
-        claim_type_data["year_month"].str[:4].isin(selected_range)
-        & (
+        (
             (claim_type_data["year_month"] == selected_year_month)
             | (selected_year_month == "All Time")
         )
@@ -327,10 +300,9 @@ claim_type_data = (
 )
 
 # Re-group to get PMPM
-claim_type_data = group_for_pmpm(claim_type_data, "claim_type")
-condition_data = group_for_pmpm(condition_data, "condition_family")
-provider_data = group_for_pmpm(provider_data, "provider_name")
-service_2_data = group_for_pmpm(service_2_data, "service_category_2")
+claim_type_data = util.group_for_pmpm(claim_type_data, "claim_type")
+condition_data = util.group_for_pmpm(condition_data, "condition_family")
+service_2_data = util.group_for_pmpm(service_2_data, "service_category_2")
 
 top_col1, top_col2 = st.columns(2)
 bot_col1, bot_col2 = st.columns(2)
@@ -342,6 +314,7 @@ with top_col1:
         y="service_category_2",
         title=title,
         color=PALETTE["4-cerulean"],
+        height="350px",
     )
 with top_col2:
     title = "Top 5 Conditions by PMPM"
@@ -352,6 +325,7 @@ with top_col2:
         title=title,
         top_n=5,
         color=PALETTE["melon"],
+        height="350px",
     )
 with bot_col1:
     title = "Top 10 Providers by PMPM"
@@ -362,6 +336,7 @@ with bot_col1:
         title=title,
         top_n=10,
         color=PALETTE["french-grey"],
+        height="350px",
     )
 with bot_col2:
     title = "PMPM by Claim Type"
@@ -371,6 +346,7 @@ with bot_col2:
         y="claim_type",
         title=title,
         color=PALETTE["2-light-sky-blue"],
+        height="350px",
     )
 
 

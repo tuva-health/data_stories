@@ -151,9 +151,10 @@ def pop_grouped_bar(df):
 def generic_simple_v_bar(df, x, y, title, color=None, height="300px", top_n=None):
     if color is None:
         color = ""
-    df.sort_values(by=x, inplace=True)
+    df.sort_values(by=x, inplace=True, ascending=False)
     if top_n:
         df = df.head(top_n)
+    df.sort_values(by=x, inplace=True, ascending=True)
     options = {
         "xAxis": {"type": "value"},
         "yAxis": {"type": "category", "data": df[y].tolist()},

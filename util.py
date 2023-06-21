@@ -39,19 +39,42 @@ def human_format(num):
         "{:f}".format(num).rstrip("0").rstrip("."), ["", "K", "M", "B", "T"][magnitude]
     )
 
+
 def format_df(df):
     df = df.copy(deep=True)
     # format column values
     for c in df:
-        if 'pct' in c:
-            df[c] = df[c].apply(lambda x: f"{round(x, 4) * 100}%" if x else "").replace("nan%", "")
-        elif 'pmpm' in c:
-            df[c] = df[c].apply(lambda x: f"${human_format(x)}" if x else "").replace("$nan", "")
+        if "pct" in c:
+            df[c] = (
+                df[c]
+                .apply(lambda x: f"{round(x, 4) * 100}%" if x else "")
+                .replace("nan%", "")
+            )
+        elif "pmpm" in c:
+            df[c] = (
+                df[c]
+                .apply(lambda x: f"${human_format(x)}" if x else "")
+                .replace("$nan", "")
+            )
 
     # format column headers
     df.columns = [
-        c.replace('_', ' ').title()\
-        .replace('Pmpm', 'PMPM')\
-        .replace("Pct Change", "% Δ") for c in df
+        c.replace("_", " ").title().replace("Pmpm", "PMPM").replace("Pct Change", "% Δ")
+        for c in df
     ]
     return df
+
+
+def group_for_pmpm(df, grouping_column):
+    grouped_df = (
+        df.groupby(grouping_column)[
+            ["paid_amount_sum", "member_month_count", "row_count"]
+        ]
+        .sum()
+        .query("row_count > 10")
+        .assign(
+            paid_amount_pmpm=lambda x: x["paid_amount_sum"] / x["member_month_count"]
+        )
+        .reset_index()
+    )
+    return grouped_df
