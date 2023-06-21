@@ -1,0 +1,17 @@
+# Python packages required to run app
+pandas
+numpy
+streamlit
+plost
+snowflake-connector-python[pandas]
+boto3
+tomli
+pre-commit
+black
+streamlit-echarts
+streamlit-extras
+st-pages
+toolz
+altair
+s3fs
+dask
