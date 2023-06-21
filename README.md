@@ -10,8 +10,8 @@ Once you are within you desired working python env (or conda, venv), run the fol
 ```pip install -r requirements.txt```
 
 ## Configuration
-Currently, this app uses a `secrets.toml` file  in the `.streamlit/` folder to store secrets and sensitive information needed for runtime. Create a `.env`
-file in the repo root folder and add the following key/value pairs to the file.
+Currently, this app uses a `secrets.toml` file  in the `.streamlit/` folder to store secrets and sensitive information needed for runtime. Create a `secrets.toml`
+file in the repo `.streamlit/` folder and add the following key/value pairs to the file.
 ```
 SNOWFLAKE_USER = "<username goes here>"
 SNOWFLAKE_PASSWORD = "<password goes here>"
@@ -21,10 +21,10 @@ SNOWFLAKE_ROLE = "<name of desired role to use>"
 ```
 
 ## App Start Up
-Once the python libraries are installed and the `.env` file has been configured, the streamlit app can be started
+Once the python libraries are installed and the `secrets.toml` file has been configured, the streamlit app can be started
 by running the following:
 
-```streamlit run main_page.py```
+```streamlit run financial_summary.py```
 
 The app should launch in a tab in your default internet browser, or can be reached by going to http://localhost:8501
 
