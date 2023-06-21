@@ -37,26 +37,22 @@ pmpm_claim_type_data.sort_values(by="year_month", inplace=True)
 ## --------------------------------- ##
 st.markdown(
     f"""
-    These financial summary charts offer a concise and comprehensive snapshot
-    of your organization's financial performance, providing key metrics
-    and insights at a glance.
+    These financial summary charts provide a breakdown of the 2020 Medicare LDS data, which is a 5% national sample of all Medicare fee-for-service claims data.
+    We used the Tuva Medicare LDS Connector to transform the LDS data into the Tuva claims data model. We then used the following Tuva data marts to prepare the data for analysis:
+    The following Tuva data marts were used to transform the Medicare LDS data for this analysis:
 
-    ### Overview
-    When it comes to analyzing healthcare data, speed and efficiency are crucial.
-    With the Tuva project, we provide healthcare analysts with a powerful toolset
-    to quickly build data marts on top of claims and EMR data. Seamlessly integrated
-    with this intuitive data app, this solution empowers analysts to effortlessly
-    delve into key metrics, uncover trends, and make informed decisions for
-    optimizing financial performance. Tuva Health's data mart solution genuinely
-    streamlines the process, enabling analysts to obtain valuable insights swiftly
-    and efficiently, revolutionizing healthcare financial analysis.
+    Member Months: A data mart that converts eligibility data into member months
+    Service Category Grouper: A data mart that groups claims into one of 17 service categories
+    PMPM: A data mart that calculates per-member-per-month costs
 
-    Simply slide the time slider below to analyze financial trends over different
-    periods, gaining valuable insights into the ever-changing healthcare landscape.
     """
 )
 
 if len(year_values) > 1:
+    st.markdown(
+        """Simply slide the time slider below to analyze financial trends over different
+    periods, gaining valuable insights into the ever-changing healthcare landscape."""
+    )
     start_year, end_year = st.select_slider(
         label="Select a range of years",
         options=year_values,
@@ -117,7 +113,7 @@ st.markdown(
     f"""
      ### Spend Change over Time
 
-     View the following chart to understand changes in medical and pharmacy
+     View the following chart to understand changes in medical
      spend over several years.
 """
 )
@@ -191,10 +187,6 @@ st.markdown(
     Analyzing medical claims by service category allows healthcare insurers
     to identify patterns, trends, and cost drivers in the service type being
     performed for the patient.
-
-    Here we can hover to highlight `Outpatient` spend which has some of the highest
-    variation over time. Overall spend seems to spike in 2018,
-    driven by an increase in outpatient spend one month.
 """
 )
 service_1_data = data.pmpm_by_service_category_1()
@@ -355,9 +347,9 @@ with bot_col2:
 ## --------------------------------- ##
 st.markdown("### Quality Summary")
 """
-This table details all the use cases for the Tuva Project and relevant claim rows that
-failed our tests. It is recommended that you look into these test results to
-improve the quality of your data and thus, trust in the analysis above.
+Here we used the Tuva data profiling data mart to analyze the data quality of the LDS data.
+This data mart looks for approximately 250 different types of data quality issues that can occur
+in claims data.
 """
 use_case_data = data.use_case()
 st.dataframe(use_case_data, use_container_width=True)
