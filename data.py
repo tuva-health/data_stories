@@ -159,7 +159,7 @@ def pmpm_by_service_category_1():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim
-            left join service_category.service_category_grouper using(claim_id)
+            left join service_category.service_category_grouper using(claim_id, claim_line_number)
             group by 1, 2
             having sum(paid_amount) > 0
             order by 1, 2 desc
@@ -193,7 +193,7 @@ def pmpm_by_service_category_1_2():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim
-            left join service_category.service_category_grouper using(claim_id)
+            left join service_category.service_category_grouper using(claim_id, claim_line_number)
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc
@@ -227,7 +227,7 @@ def pmpm_by_service_category_1_provider(service_cat, year_month):
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim c
-            left join service_category.service_category_grouper using(claim_id)
+            left join service_category.service_category_grouper using(claim_id, claim_line_number)
             left join core.provider p
             on c.rendering_npi = p.npi
             group by 1, 2, 3
@@ -273,7 +273,7 @@ def pmpm_by_service_category_1_condition():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim mc
-            left join service_category.service_category_grouper using(claim_id)
+            left join service_category.service_category_grouper using(claim_id, claim_line_number)
             left join chronic_conditions.tuva_chronic_conditions_long cc
             on mc.patient_id = cc.patient_id
             and cc.last_diagnosis_date >= mc.claim_end_date
@@ -311,7 +311,7 @@ def pmpm_by_service_category_1_claim_type():
                , sum(paid_amount) as paid_amount_sum
                , count(*) as row_count
             from core.medical_claim c
-            left join service_category.service_category_grouper using(claim_id)
+            left join service_category.service_category_grouper using(claim_id, claim_line_number)
             group by 1, 2, 3
             having sum(paid_amount) > 0
             order by 1, 2, 3 desc
