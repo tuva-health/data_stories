@@ -42,7 +42,9 @@ st.markdown(
     The following Tuva data marts were used to transform the Medicare LDS data for this analysis:
 
     Member Months: A data mart that converts eligibility data into member months
+
     Service Category Grouper: A data mart that groups claims into one of 17 service categories
+
     PMPM: A data mart that calculates per-member-per-month costs
 
     """
